@@ -802,6 +802,7 @@ function vykresliObsahDetailu() {
     udaj("Stav", stitek(p.stav, true)),
     udaj("Typ", h(NAZVY_TYPU[p.typ] || p.typ) || nic),
     udaj("Materiál", h(p.material) || nic),
+    udaj("Rozměr", p.rozmer ? `${h(p.rozmer)} mm` : nic),
     udaj("Revize", revize),
     udaj("Vydáno", vydano),
     udaj("Co se změnilo", h(p.poznamkaRevize) || nic, "vice-radku"),
@@ -957,6 +958,7 @@ function ukazkovaData() {
   if (nahled) return nahled;
   const dil = (cislo, popis, material, revize, stav, vydano, dalsi = {}) => ({
     cislo, typ: cislo.split("-")[0], skupina: "dil", popis, material, revize, stav, vydano,
+    rozmer: "250 × 40 × 5",
     vytvoreno: "12.09.2026", naDisku: true, poznamkaRevize: "", obsahuje: [], pouzitoV: ["S-0001"],
     historie: [], vydani: vydano ? [{ revize, kdy: "28.09.2026" }] : [],
     nahledy: { model: obrazekUkazky(cislo, false), vykres: obrazekUkazky(cislo, true) }, ...dalsi,
