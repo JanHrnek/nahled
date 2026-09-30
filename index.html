@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Stránka je jen pro toho, kdo dostal odkaz — do vyhledávačů nepatří. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Náhled projektu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+ * Webový náhled projektu pro zadavatele.
+ *
+ * Jeden soubor bez sestavování: GitHub Pages ho vydá, jak je. Data čte
+ * ze Supabase veřejným klíčem, a to jen přes dvě funkce, které chtějí kód
+ * z odkazu (supabase/schema.sql). Vzhled drží appku: stejné barvy, stavy
+ * a pořadí sestava → podsestava → díl.
+ */
+:root {
+  --bg: #f4f5f7;
+  --plocha: #ffffff;
+  --okraj: #dce4ea;
+  --text: #15293a;
+  --text-2: #5d7488;
+  --text-3: #8aa0b0;
+  --pole: #a9bac7;
+  --akcent: #15293a;
+  --akcent-2: #0e1d2b;
+  --na-akcentu: #ffffff;
+  --akcent-jemny: rgba(21, 41, 58, 0.05);
+  --chyba: #b3261e;
+  --chyba-bg: #fef2f2;
+  --stin: 0 20px 50px rgba(15, 30, 45, 0.18);
+  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 "Inter", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.mono { font-family: var(--mono); }
+
+/* ── Hlavička ─────────────────────────────────────────────── */
+.lista {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--okraj); background: var(--plocha);
+}
+.lista .znacka {
+  width: 32px; height: 32px; border-radius: 8px; flex: none;
+  display: grid; place-items: center;
+  background: var(--akcent); color: var(--na-akcentu);
+  font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
+}
+.lista .co { font-size: 13px; color: var(--text-2); }
+.lista .co b { color: var(--text); font-weight: 600; }
+
+main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+
+.projekt .kod { font-family: var(--mono); font-size: 13px; letter-spacing: 0.04em; color: var(--akcent); }
+.projekt h1 { margin: 2px 0 6px; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+.projekt .meta { font-size: 13px; color: var(--text-3); }
+.souhrn { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 32px; }
+
+/* ── Stavy (stejné barvy jako v appce) ───────────────────── */
+.stav {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid; border-radius: 999px; padding: 1px 9px;
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.stav::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tecka); }
+.stav.rozpracovany { --tecka: #fbbf24; border-color: #fde68a; background: #fffbeb; color: #78350f; }
+.stav.hotovy       { --tecka: #16a34a; border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+.stav.keKontrole   { --tecka: #f87171; border-color: #fecaca; background: #fef2f2; color: #b3261e; }
+.stav.vydany       { --tecka: #3b82f6; border-color: #bfdbfe; background: #eff6ff; color: #1e40af; }
+.stav.reference    { --tecka: #8b5cf6; border-color: #ddd6fe; background: #f5f3ff; color: #5b21b6; }
+.stav.zruseny      { --tecka: #b91c1c; border-color: #fca5a5; background: #fef2f2; color: #b3261e; }
+.stav .pocet { font-variant-numeric: tabular-nums; opacity: 0.75; }
+
+/* ── Koše položek ────────────────────────────────────────── */
+.kos { margin-bottom: 28px; }
+.kos h2 {
+  display: flex; align-items: baseline; gap: 10px; margin: 0;
+  padding: 8px 16px; border: 1px solid var(--okraj); border-bottom: 0;
+  border-radius: 10px 10px 0 0; background: var(--akcent-jemny);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--akcent);
+}
+.kos h2 span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-3); font-size: 12px; }
+.radky { border: 1px solid var(--okraj); border-radius: 0 0 10px 10px; background: var(--plocha); overflow: hidden; }
+.radek {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr) 160px 56px 128px 40px;
+  align-items: center; gap: 12px; width: 100%;
+  padding: 10px 16px; border: 0; border-bottom: 1px solid var(--okraj);
+  background: none; text-align: left;
+}
+.radek:last-child { border-bottom: 0; }
+.radek:hover { background: var(--akcent-jemny); }
+.radek.ztlumeny { opacity: 0.55; }
+.radek .cislo { font-family: var(--mono); font-size: 14px; }
+.radek .popis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radek .material { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radek .kom { font-size: 12px; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
+.radek .kom.ma { color: var(--akcent); font-weight: 600; }
+.revize { font-family: var(--mono); font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
+.revize .vydano { width: 7px; height: 7px; border-radius: 50%; background: #3b82f6; }
+.revize .nevydano { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--text-3); }
+.zahlavi {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr) 160px 56px 128px 40px; gap: 12px;
+  padding: 6px 16px; border-bottom: 1px solid var(--okraj);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3);
+}
+@media (max-width: 720px) {
+  .radek, .zahlavi { grid-template-columns: 76px minmax(0, 1fr) auto; row-gap: 2px; }
+  .zahlavi { display: none; }
+  .radek .material, .radek .kom { display: none; }
+  .radek .rev-bunka { grid-column: 3; grid-row: 1; justify-self: end; }
+  .radek .stav-bunka { grid-column: 2 / 4; grid-row: 2; }
+}
+
+/* ── Komentáře ───────────────────────────────────────────── */
+.komentare h3 {
+  margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.komentare ul { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.komentar { border: 1px solid var(--okraj); border-radius: 10px; padding: 8px 12px; background: var(--bg); }
+.komentar.od-autora { border-color: color-mix(in srgb, var(--akcent) 30%, transparent); background: var(--akcent-jemny); }
+.komentar .kdo { font-size: 12px; color: var(--text-3); }
+.komentar .kdo b { color: var(--text-2); font-weight: 600; }
+.komentar .text { margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.komentare .prazdno { font-size: 13px; color: var(--text-3); margin: 0 0 12px; }
+.formular { display: grid; gap: 8px; }
+.formular input, .formular textarea {
+  width: 100%; border: 1px solid var(--pole); border-radius: 8px;
+  background: var(--plocha); padding: 8px 12px; outline: none;
+}
+.formular input:focus, .formular textarea:focus { border-color: var(--akcent); }
+.formular textarea { resize: vertical; min-height: 64px; }
+.formular .dole { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.formular .dole input { flex: 1 1 200px; width: auto; }
+.tl {
+  height: 36px; padding: 0 16px; border-radius: 8px;
+  border: 1px solid var(--akcent); background: var(--akcent); color: var(--na-akcentu);
+  font-size: 13px; font-weight: 500;
+}
+.tl:hover:not(:disabled) { background: var(--akcent-2); border-color: var(--akcent-2); }
+.tl:disabled { opacity: 0.45; cursor: not-allowed; }
+.tl.vedlejsi { background: var(--plocha); color: var(--text); border-color: var(--pole); }
+.tl.vedlejsi:hover:not(:disabled) { background: var(--bg); border-color: var(--pole); }
+.chyba { color: var(--chyba); font-size: 13px; }
+.karta { border: 1px solid var(--okraj); border-radius: 10px; background: var(--plocha); padding: 16px; }
+
+/* ── Detail dílu — karta uprostřed, rozložená jako v appce ── */
+.pozadi {
+  position: fixed; inset: 0; z-index: 10; background: rgba(21, 41, 58, 0.35);
+  display: flex; align-items: center; justify-content: center; padding: 32px;
+}
+.detail {
+  width: 100%; max-width: 1024px; max-height: 100%; overflow: auto;
+  background: var(--plocha); border: 1px solid var(--okraj); border-radius: 12px; box-shadow: var(--stin);
+}
+.detail .hlava {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding: 16px 24px; border-bottom: 1px solid var(--okraj);
+}
+.detail .hlava .cislo { font-family: var(--mono); font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.detail .hlava .popis { margin: 2px 0 0; font-size: 15px; }
+.krizek {
+  border: 0; background: none; border-radius: 6px; padding: 4px 8px;
+  font-size: 20px; line-height: 1; color: var(--text-3);
+}
+.krizek:hover { background: var(--bg); color: var(--text); }
+.detail .telo { display: flex; gap: 24px; padding: 24px; }
+.levy { width: 420px; flex: none; }
+.ramecek {
+  position: relative; aspect-ratio: 1.41; width: 100%;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  border: 1px solid var(--okraj); border-radius: 8px; background: #fff;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.ramecek img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; }
+.ramecek .nic { margin: 0; padding: 24px 16px; text-align: center; font-size: 12px; color: var(--text-3); }
+.ramecek .zvetsit {
+  position: absolute; inset: 0; border: 0; background: none; cursor: zoom-in;
+  display: flex; align-items: flex-end; justify-content: flex-end; padding: 8px;
+}
+.ramecek .zvetsit span {
+  border-radius: 6px; background: rgba(255, 255, 255, 0.85); padding: 4px 8px;
+  font-size: 11px; font-weight: 500; color: var(--text-2);
+  box-shadow: 0 1px 2px rgba(15, 30, 45, 0.1); opacity: 0; transition: opacity 0.15s;
+}
+.ramecek .zvetsit:hover span { opacity: 1; }
+.prepinac {
+  margin-top: 8px; display: flex; gap: 4px; padding: 4px;
+  border: 1px solid var(--okraj); border-radius: 8px; background: var(--bg);
+}
+.prepinac button {
+  flex: 1; border: 0; background: none; border-radius: 4px; padding: 4px 8px;
+  font-size: 12px; font-weight: 500; color: var(--text-2);
+}
+.prepinac button:hover { color: var(--text); }
+.prepinac button.aktivni { background: var(--plocha); color: var(--text); box-shadow: 0 1px 2px rgba(15, 30, 45, 0.08); }
+.prepinac button.chybi { opacity: 0.45; }
+dl.udaje { flex: 1; min-width: 0; margin: 0; font-size: 14px; }
+.udaj { display: flex; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--okraj); }
+.udaj:last-child { border-bottom: 0; }
+.udaj dt { width: 128px; flex: none; font-size: 13px; color: var(--text-3); }
+.udaj dd { margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.udaj dd.vice-radku { white-space: pre-wrap; }
+.udaj b { font-weight: 500; }
+.udaj ol { margin: 0; padding: 0; list-style: none; }
+.udaj .kdy { margin-left: 8px; font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.udaj .vydani li { font-size: 13px; }
+.tlumene { color: var(--text-3); font-style: italic; }
+.varovani { margin-top: 4px; font-size: 12px; color: #78350f; }
+.historie-tl {
+  margin-left: 6px; border: 0; background: none; border-radius: 4px; padding: 2px 6px;
+  font-size: 12px; color: var(--text-2);
+}
+.historie-tl:hover { background: var(--bg); color: var(--text); }
+.udaj .denik { margin-top: 8px; padding-left: 12px; border-left: 1px solid var(--okraj); display: grid; gap: 6px; }
+.denik li { font-size: 13px; }
+.denik .poznamka { color: var(--text-2); }
+.okoli { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px 24px; border-top: 1px solid var(--okraj); }
+.okoli h3 {
+  margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.okoli h3 span { margin-left: 8px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.okoli ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.soused {
+  display: flex; align-items: baseline; gap: 10px; width: 100%;
+  border: 0; background: none; border-radius: 4px; padding: 4px 8px; text-align: left;
+}
+.soused:hover:not(:disabled) { background: var(--bg); }
+.soused:disabled { cursor: default; color: inherit; }
+.soused .mono { flex: none; font-size: 13px; font-variant-numeric: tabular-nums; }
+.soused .popis { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--text-2); }
+.soused .sipka { font-size: 11px; color: var(--text-3); }
+.okoli .napoveda { margin: 8px 0 0; padding: 0 8px; font-size: 11px; color: var(--text-3); }
+.okoli .prazdne { margin: 8px 0 0; font-size: 13px; color: var(--text-3); font-style: italic; }
+.detail .sekce { padding: 20px 24px; border-top: 1px solid var(--okraj); }
+@media (max-width: 640px) {
+  .pozadi { padding: 0; }
+  .detail { height: 100%; max-height: none; border: 0; border-radius: 0; }
+  .detail .telo { flex-direction: column; padding: 16px; }
+  .levy { width: 100%; }
+  .okoli { grid-template-columns: 1fr; }
+  .udaj dt { width: 104px; }
+}
+
+/* ── Lupa na výkres ──────────────────────────────────────── */
+.lupa {
+  position: fixed; inset: 0; z-index: 20; background: rgba(8, 16, 24, 0.85);
+  overflow: auto; display: grid; place-items: center; padding: 16px;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.lupa img { max-width: 100%; max-height: calc(100vh - 32px); background: #fff; cursor: zoom-in; -webkit-user-drag: none; }
+.lupa.plna { place-items: start; }
+.lupa.plna img { max-width: none; max-height: none; cursor: zoom-out; }
+.lupa .zavrit {
+  position: fixed; top: 12px; right: 12px; z-index: 21;
+  height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: #fff; color: #15293a; font-size: 13px; font-weight: 500;
+}
+
+/* ── Stavy stránky ───────────────────────────────────────── */
+.hlaska { max-width: 560px; margin: 80px auto; text-align: center; color: var(--text-2); padding: 0 16px; }
+.hlaska h1 { font-size: 20px; color: var(--text); margin: 0 0 8px; }
+footer { max-width: 1120px; margin: 0 auto; padding: 0 16px 40px; font-size: 12px; color: var(--text-3); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="lista">
+  <div class="znacka" aria-hidden="true">JH</div>
+  <div class="co"><b>Jan Hrnek</b> · náhled projektu</div>
+</div>
+<main id="obsah"><p class="hlaska">Načítám…</p></main>
+<footer id="paticka" hidden>
+  Náhled stavu konstrukce. Obrázky jsou jen pro orientaci a nejsou platné pro
+  výrobu. Aktualizuje se samo zhruba každou minutu.
+</footer>
+<div id="pozadi" class="pozadi" hidden>
+  <aside id="detail" class="detail" aria-modal="true" role="dialog"></aside>
+</div>
+<div id="lupa" class="lupa" hidden></div>
+
+<script>
+"use strict";
+
+// Veřejné údaje projektu v Supabase — k tabulkám se s nimi nikdo nedostane,
+// jen ke dvěma funkcím, které chtějí kód z odkazu.
+const URL_PROJEKTU = "https://krjklzhmjfrobxirgfss.supabase.co";
+const KLIC = "sb_publishable_kELuD5fKHK50JOYhleZWkw_WM_jgPhw";
+const OBNOVA_MS = 60_000;
+
+const NAZVY_STAVU = {
+  rozpracovany: "Rozpracovaný",
+  keKontrole: "Ke kontrole",
+  vydany: "Vydaný",
+  hotovy: "Hotový",
+  reference: "Reference",
+  zruseny: "Zrušený",
+};
+const NAZVY_TYPU = { D: "Díl", S: "Podsestava", SV: "Vrcholová sestava" };
+const SKUPINY = [
+  ["sestava", "Vrcholové sestavy"],
+  ["podsestava", "Podsestavy"],
+  ["dil", "Díly"],
+];
+
+const kod = decodeURIComponent(location.hash.slice(1)).trim();
+const demo = kod === "demo";
+let nahled = null;        // odpověď funkce `nahled`
+let otevrene = null;      // číslo otevřeného dílu
+let zobrazeni = "model";  // co ukazuje náhled v detailu
+let chybaFormulare = {};  // podle čísla
+let ukazHistorii = false; // rozbalená historie revizí v detailu
+
+// ── Pomocníci ──────────────────────────────────────────────
+
+const $ = (id) => document.getElementById(id);
+
+function h(text) {
+  return String(text ?? "").replace(/[&<>"']/g, (z) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[z]);
+}
+
+function sklonuj(n, jedna, dva, pet) {
+  return n === 1 ? jedna : n >= 2 && n <= 4 ? dva : pet;
+}
+
+function kdy(iso, sCasem = true) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return h(iso);
+  return d.toLocaleString("cs-CZ", sCasem
+    ? { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }
+    : { day: "numeric", month: "numeric", year: "numeric" });
+}
+
+function adresaObrazku(cesta) {
+  if (!cesta) return null;
+  return cesta.startsWith("data:") ? cesta : `${URL_PROJEKTU}/storage/v1/object/public/nahledy/${cesta}`;
+}
+
+function jmeno() {
+  try { return localStorage.getItem("nahled-jmeno") || ""; } catch { return ""; }
+}
+function zapamatujJmeno(j) {
+  try { localStorage.setItem("nahled-jmeno", j); } catch { /* soukromé okno */ }
+}
+
+async function rpc(funkce, argumenty) {
+  const odpoved = await fetch(`${URL_PROJEKTU}/rest/v1/rpc/${funkce}`, {
+    method: "POST",
+    headers: { apikey: KLIC, "Content-Type": "application/json" },
+    body: JSON.stringify(argumenty),
+  });
+  const text = await odpoved.text();
+  if (!odpoved.ok) {
+    let zprava = "";
+    try { zprava = JSON.parse(text).message; } catch { /* není JSON */ }
+    throw new Error(zprava || `Server odpověděl chybou ${odpoved.status}.`);
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+// ── Data ───────────────────────────────────────────────────
+
+async function nacti() {
+  if (demo) return ukazkovaData();
+  return rpc("nahled", { p_kod: kod });
+}
+
+async function obnov() {
+  try {
+    const novy = await nacti();
+    if (!novy) {
+      nahled = null;
+      zavriDetail();
+      zobrazHlasku(
+        "Odkaz už neplatí",
+        "Sdílení bylo vypnuto nebo dostalo nový odkaz. Požádejte o aktuální."
+      );
+      return;
+    }
+    nahled = novy;
+    vykresli();
+  } catch (e) {
+    // Při výpadku spojení nech na obrazovce poslední stav.
+    if (!nahled) zobrazHlasku("Náhled se nepodařilo načíst", e.message);
+  }
+}
+
+function polozky() {
+  return (nahled?.data?.polozky ?? []);
+}
+
+function komentareK(cislo) {
+  return (nahled?.komentare ?? []).filter((k) => (k.cislo || "") === cislo);
+}
+
+// ── Přehled ────────────────────────────────────────────────
+
+function zobrazHlasku(nadpis, text) {
+  $("obsah").innerHTML = `<div class="hlaska"><h1>${h(nadpis)}</h1><p>${h(text)}</p></div>`;
+  $("paticka").hidden = true;
+}
+
+/** Rozepsaný komentář nesmí obnovení dat smazat — ani text, ani kurzor. */
+function zachovejRozepsane(kde, prekresli) {
+  const pred = document.querySelector(`${kde} textarea`);
+  const text = pred?.value ?? "";
+  const fokus = pred !== null && document.activeElement === pred;
+  prekresli();
+  const po = document.querySelector(`${kde} textarea`);
+  if (po && text) po.value = text;
+  if (po && fokus) po.focus();
+}
+
+function vykresli() {
+  zachovejRozepsane("#komentare-projektu", vykresliPrehled);
+  if (otevrene) vykresliDetail();
+}
+
+function vykresliPrehled() {
+  const vse = polozky();
+  document.title = `${nahled.projekt} ${nahled.nazev || ""} — náhled`.trim();
+
+  const pocty = {};
+  for (const p of vse) pocty[p.stav] = (pocty[p.stav] || 0) + 1;
+  const souhrn = Object.keys(NAZVY_STAVU)
+    .filter((s) => pocty[s])
+    .map((s) => `<span class="stav ${s}">${NAZVY_STAVU[s]} <span class="pocet">${pocty[s]}</span></span>`)
+    .join("");
+
+  const kose = SKUPINY.map(([skupina, nadpis]) => {
+    const radky = vse.filter((p) => p.skupina === skupina);
+    if (!radky.length) return "";
+    return `
+      <section class="kos">
+        <h2>${nadpis} <span>${radky.length}</span></h2>
+        <div class="radky">
+          <div class="zahlavi"><span>Číslo</span><span>Popis</span><span>Materiál</span><span>Rev.</span><span>Stav</span><span></span></div>
+          ${radky.map(radek).join("")}
+        </div>
+      </section>`;
+  }).join("");
+
+  $("obsah").innerHTML = `
+    <section class="projekt">
+      <div class="kod">${h(nahled.projekt)}</div>
+      <h1>${h(nahled.nazev || nahled.projekt)}</h1>
+      <div class="meta">
+        ${vse.length} ${sklonuj(vse.length, "položka", "položky", "položek")}
+        · aktualizováno ${kdy(nahled.aktualizovano)}
+      </div>
+    </section>
+    <div class="souhrn">${souhrn}</div>
+    ${kose || `<p class="hlaska">Projekt zatím nemá žádné díly.</p>`}
+    <section class="karta komentare" id="komentare-projektu">
+      ${komentareHtml("", "Komentáře k projektu")}
+    </section>`;
+  $("paticka").hidden = false;
+}
+
+function revize(p) {
+  const znak = p.revize ? h(p.revize) : "—";
+  const tecka = p.vydano
+    ? `<span class="vydano" title="Výkres této revize je vydaný"></span>`
+    : `<span class="nevydano" title="Výkres této revize ještě není vydaný"></span>`;
+  return `<span class="revize">${znak}${tecka}</span>`;
+}
+
+function stitek(stav) {
+  return `<span class="stav ${h(stav)}">${h(NAZVY_STAVU[stav] || stav)}</span>`;
+}
+
+function radek(p) {
+  const pocet = komentareK(p.cislo).length;
+  return `
+    <button class="radek${p.naDisku === false ? " ztlumeny" : ""}" data-cislo="${h(p.cislo)}">
+      <span class="cislo">${h(p.cislo)}</span>
+      <span class="popis" title="${h(p.popis)}">${h(p.popis) || "—"}</span>
+      <span class="material" title="${h(p.material)}">${h(p.material)}</span>
+      <span class="rev-bunka">${revize(p)}</span>
+      <span class="stav-bunka">${stitek(p.stav)}</span>
+      <span class="kom${pocet ? " ma" : ""}" title="Komentáře">${pocet ? `💬 ${pocet}` : ""}</span>
+    </button>`;
+}
+
+// ── Komentáře ──────────────────────────────────────────────
+
+function komentareHtml(cislo, nadpis) {
+  const seznam = komentareK(cislo);
+  const polozky = seznam.length
+    ? `<ul>${seznam.map((k) => `
+        <li class="komentar${k.odZadavatele ? "" : " od-autora"}">
+          <div class="kdo"><b>${h(k.autor)}</b> · ${kdy(k.vytvoreno)}</div>
+          <div class="text">${h(k.text)}</div>
+        </li>`).join("")}</ul>`
+    : `<p class="prazdno">${cislo ? "K tomuto dílu zatím nikdo nic nenapsal." : "Zatím žádné komentáře k projektu."}</p>`;
+  const chyba = chybaFormulare[cislo] ? `<p class="chyba">${h(chybaFormulare[cislo])}</p>` : "";
+  return `
+    <h3>${h(nadpis)}${seznam.length ? ` · ${seznam.length}` : ""}</h3>
+    ${polozky}
+    <form class="formular" data-cislo="${h(cislo)}">
+      <textarea name="text" maxlength="4000" required
+        placeholder="${cislo ? `Poznámka k ${h(cislo)}` : "Poznámka k celému projektu"}"></textarea>
+      <div class="dole">
+        <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
+        <button class="tl" type="submit">Odeslat komentář</button>
+      </div>
+      ${chyba}
+    </form>`;
+}
+
+async function odesliKomentar(formular) {
+  const cislo = formular.dataset.cislo || "";
+  const text = formular.text.value.trim();
+  const autor = formular.autor.value.trim();
+  if (!text || !autor) return;
+  zapamatujJmeno(autor);
+  const tlacitko = formular.querySelector("button");
+  tlacitko.disabled = true;
+  tlacitko.textContent = "Odesílám…";
+  try {
+    if (demo) {
+      nahled.komentare.push({
+        id: String(Date.now()), cislo, autor, text,
+        odZadavatele: true, vytvoreno: new Date().toISOString(),
+      });
+    } else {
+      await rpc("pridej_komentar", { p_kod: kod, p_cislo: cislo, p_autor: autor, p_text: text });
+    }
+    delete chybaFormulare[cislo];
+    formular.text.value = "";
+    await obnov();
+  } catch (e) {
+    chybaFormulare[cislo] = e.message;
+    vykresli();
+  }
+}
+
+// ── Detail dílu ────────────────────────────────────────────
+
+function otevriDetail(cislo) {
+  otevrene = cislo;
+  ukazHistorii = false;
+  // Model má přednost jako v appce; výkres, jen když model chybí.
+  const nahledy = polozky().find((x) => x.cislo === cislo)?.nahledy || {};
+  zobrazeni = !nahledy.model && nahledy.vykres ? "vykres" : "model";
+  // Jiný díl = jiný komentář; rozepsaný text z předchozího sem nepatří.
+  $("detail").innerHTML = "";
+  vykresliDetail();
+  $("detail").scrollTop = 0;
+}
+
+function zavriDetail() {
+  otevrene = null;
+  $("pozadi").hidden = true;
+  document.body.style.overflow = "";
+}
+
+function vykresliDetail() {
+  zachovejRozepsane("#detail", vykresliObsahDetailu);
+}
+
+function vykresliObsahDetailu() {
+  const vse = polozky();
+  const p = vse.find((x) => x.cislo === otevrene);
+  if (!p) return zavriDetail();
+
+  const nahledy = p.nahledy || {};
+  const adresa = adresaObrazku(nahledy[zobrazeni]);
+  const obraz = adresa
+    ? `<img src="${h(adresa)}" alt="Náhled ${zobrazeni === "vykres" ? "výkresu" : "dílu"} ${h(p.cislo)}" draggable="false">
+       <button class="zvetsit" data-lupa="${h(adresa)}" title="Zvětšit"><span>Zvětšit</span></button>`
+    : `<p class="nic">Náhled ${zobrazeni === "vykres" ? "výkresu" : "modelu"} zatím není.</p>`;
+
+  const nic = `<span class="tlumene">—</span>`;
+  const udaj = (popisek, obsah, trida = "") =>
+    `<div class="udaj"><dt>${popisek}</dt><dd class="${trida}">${obsah}</dd></div>`;
+
+  const historie = p.historie || [];
+  const revize = `<b>${h(p.revize) || "originál"}</b>` + (historie.length > 1
+    ? ` <button class="historie-tl" data-historie>historie (${historie.length}) ${ukazHistorii ? "▴" : "▾"}</button>`
+      + (ukazHistorii
+        ? `<ol class="denik">${historie.map((r) => `
+            <li><b>${h(r.revize) || "originál"}</b><span class="kdy">${h(r.kdy)}</span>
+              ${r.poznamka ? `<div class="poznamka">${h(r.poznamka)}</div>` : ""}</li>`).join("")}</ol>`
+        : "")
+    : "");
+
+  const vydani = p.vydani || [];
+  const vydano = vydani.length === 0
+    ? `<span class="tlumene" style="font-style:normal">zatím nevydáno</span>`
+    : `<ol class="vydani">${vydani.map((v) =>
+        `<li><b>${h(v.revize) || "originál"}</b><span class="kdy">${h(v.kdy)}</span></li>`).join("")}</ol>`
+      + (p.vydano ? "" : `<div class="varovani">Aktuální revize ${h(p.revize) || "(originál)"} ještě vydaná není.</div>`);
+
+  const udaje = [
+    udaj("Stav", stitek(p.stav)),
+    udaj("Typ", h(NAZVY_TYPU[p.typ] || p.typ) || nic),
+    udaj("Materiál", h(p.material) || nic),
+    udaj("Revize", revize),
+    udaj("Vydáno", vydano),
+    udaj("Co se změnilo", h(p.poznamkaRevize) || nic, "vice-radku"),
+    udaj("Vytvořeno", h(p.vytvoreno) || nic),
+  ].join("");
+
+  // Sousední čísla s popisem, jako v appce. Proklik jen na to, co je
+  // v tomhle projektu — jinam zadavatel nevidí.
+  const popisy = new Map(vse.map((x) => [x.cislo, x.popis]));
+  const sloupec = (nadpis, cisla, napoveda) => `
+    <div>
+      <h3>${nadpis}${cisla.length ? `<span>${cisla.length}</span>` : ""}</h3>
+      ${cisla.length === 0
+        ? `<p class="prazdne">—</p>`
+        : `<ul>${cisla.map((c) => {
+            const klikaci = popisy.has(c);
+            return `<li><button class="soused" ${klikaci ? `data-cislo="${h(c)}"` : "disabled"}>
+              <span class="mono">${h(c)}</span>
+              <span class="popis">${h(popisy.get(c) || "")}</span>
+              ${klikaci ? `<span class="sipka">›</span>` : ""}
+            </button></li>`;
+          }).join("")}</ul>
+          <p class="napoveda">${napoveda}</p>`}
+    </div>`;
+  const obsahuje = p.obsahuje || [];
+  const pouzitoV = p.pouzitoV || [];
+  const okoli = obsahuje.length || pouzitoV.length
+    ? `<div class="okoli">
+        ${sloupec("Skládá se z", obsahuje, "Přímé části, ne celý strom — co je uvnitř podsestav, je vidět u nich.")}
+        ${sloupec("Používá se v", pouzitoV, "Sestavy, do kterých tenhle díl přímo patří.")}
+      </div>`
+    : "";
+
+  $("detail").innerHTML = `
+    <div class="hlava">
+      <div>
+        <div class="cislo">${h(p.cislo)}</div>
+        <p class="popis${p.popis ? "" : " tlumene"}">${h(p.popis) || "bez popisu"}</p>
+      </div>
+      <button class="krizek" data-zavrit aria-label="Zavřít">×</button>
+    </div>
+    <div class="telo">
+      <div class="levy">
+        <div class="ramecek">${obraz}</div>
+        <div class="prepinac">
+          <button data-zobrazeni="model" class="${zobrazeni === "model" ? "aktivni" : ""}${nahledy.model ? "" : " chybi"}">Model</button>
+          <button data-zobrazeni="vykres" class="${zobrazeni === "vykres" ? "aktivni" : ""}${nahledy.vykres ? "" : " chybi"}">Výkres</button>
+        </div>
+      </div>
+      <dl class="udaje">${udaje}</dl>
+    </div>
+    ${okoli}
+    <div class="sekce komentare">${komentareHtml(p.cislo, "Komentáře")}</div>`;
+
+  $("pozadi").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function otevriLupu(adresa) {
+  const lupa = $("lupa");
+  lupa.innerHTML = `<button class="zavrit" data-zavrit-lupu>Zavřít</button><img src="${h(adresa)}" alt="" draggable="false">`;
+  lupa.classList.remove("plna");
+  lupa.hidden = false;
+}
+
+// ── Události ───────────────────────────────────────────────
+
+document.addEventListener("click", (e) => {
+  // Klik vedle karty (na ztmavené pozadí) detail zavře.
+  if (e.target === $("pozadi")) return zavriDetail();
+  const cil = e.target.closest(
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-zavrit-lupu], [data-historie], #lupa img"
+  );
+  if (!cil || cil.matches("form")) return;
+  if (cil.matches("#lupa img")) return $("lupa").classList.toggle("plna");
+  if (cil.matches("[data-zavrit-lupu]")) return ($("lupa").hidden = true);
+  if (cil.matches("[data-lupa]")) return otevriLupu(cil.dataset.lupa);
+  if (cil.matches("[data-zavrit]")) return zavriDetail();
+  if (cil.matches("[data-historie]")) {
+    ukazHistorii = !ukazHistorii;
+    return vykresliDetail();
+  }
+  if (cil.matches("[data-zobrazeni]")) {
+    zobrazeni = cil.dataset.zobrazeni;
+    return vykresliDetail();
+  }
+  if (cil.dataset.cislo) otevriDetail(cil.dataset.cislo);
+});
+
+document.addEventListener("submit", (e) => {
+  if (!e.target.matches(".formular")) return;
+  e.preventDefault();
+  odesliKomentar(e.target);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!$("lupa").hidden) $("lupa").hidden = true;
+  else if (otevrene) zavriDetail();
+});
+
+// Obrázky se nestahují přes pravé tlačítko ani tažením. Neznemožní to
+// snímek obrazovky — proto je na nich vodoznak —, ale nepozve k tomu.
+document.addEventListener("contextmenu", (e) => {
+  if (e.target.closest(".ramecek, .lupa")) e.preventDefault();
+});
+
+// ── Start ──────────────────────────────────────────────────
+
+// Vložený jiný odkaz do téže záložky mění jen část za #, a to prohlížeč
+// stránku znovu nenačte — kód se ale čte jen při startu.
+window.addEventListener("hashchange", () => location.reload());
+
+if (!kod) {
+  zobrazHlasku("Neúplný odkaz", "Odkaz na náhled projektu končí dlouhým kódem za znakem #. Zkopírujte ho prosím celý.");
+} else {
+  obnov();
+  setInterval(() => { if (!document.hidden) obnov(); }, OBNOVA_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) obnov(); });
+}
+
+// ── Ukázka (odkaz #demo) — smyšlená data pro vyzkoušení stránky ─────
+
+function obrazekUkazky(text, vykres) {
+  const svg = vykres
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="1410" height="1000"><rect width="1410" height="1000" fill="#fff"/><rect x="30" y="30" width="1350" height="940" fill="none" stroke="#222" stroke-width="3"/><rect x="200" y="260" width="620" height="300" fill="none" stroke="#222" stroke-width="4"/><path d="M200 620h620M200 600v40M820 600v40" stroke="#222" stroke-width="2"/><text x="470" y="660" font-family="Arial" font-size="32">620</text><rect x="830" y="780" width="550" height="190" fill="none" stroke="#222" stroke-width="2"/><text x="860" y="900" font-family="Arial" font-size="56">${text}</text><text x="380" y="520" font-family="Arial" font-size="60" fill="#c42626" opacity=".3" transform="rotate(-28 700 500)">NÁHLED — UKÁZKA</text></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="760"><rect width="1024" height="760" fill="#fff"/><path d="M300 480l280-150 220 110-280 150z" fill="#9fb2c2"/><path d="M300 480v60l220 110v-60z" fill="#6c8193"/><path d="M520 590v60l280-150v-60z" fill="#7f95a8"/><text x="512" y="720" text-anchor="middle" font-family="Arial" font-size="30" fill="#5d7488">${text}</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+function ukazkovaData() {
+  if (nahled) return nahled;
+  const dil = (cislo, popis, material, revize, stav, vydano, dalsi = {}) => ({
+    cislo, typ: cislo.split("-")[0], skupina: "dil", popis, material, revize, stav, vydano,
+    vytvoreno: "12.09.2026", naDisku: true, poznamkaRevize: "", obsahuje: [], pouzitoV: ["S-0001"],
+    historie: [], vydani: vydano ? [{ revize, kdy: "28.09.2026" }] : [],
+    nahledy: { model: obrazekUkazky(cislo, false), vykres: obrazekUkazky(cislo, true) }, ...dalsi,
+  });
+  return {
+    projekt: "H2600",
+    nazev: "Ukázkový projekt",
+    aktualizovano: new Date().toISOString(),
+    data: {
+      verze: 1,
+      zdroj: "solidworks",
+      polozky: [
+        { ...dil("SV-0001", "Rám stroje", "", "A", "keKontrole", false), skupina: "sestava",
+          obsahuje: ["S-0001", "D-0003"], pouzitoV: [],
+          historie: [{ revize: "A", poznamka: "Posunuté otvory pro motor", kdy: "29.09.2026" }] },
+        { ...dil("S-0001", "Podpěra levá", "", "", "vydany", true), skupina: "podsestava",
+          obsahuje: ["D-0001", "D-0002"], pouzitoV: ["SV-0001"] },
+        dil("D-0001", "Čelní plech 250 × 40 × 5", "S235JR", "", "hotovy", true),
+        dil("D-0002", "Žebro", "S235JR", "B", "rozpracovany", false, {
+          poznamkaRevize: "Zkrácené o 20 mm",
+          historie: [
+            { revize: "B", poznamka: "Zkrácené o 20 mm", kdy: "29.09.2026" },
+            { revize: "A", poznamka: "Sražená hrana", kdy: "20.09.2026" },
+          ],
+          vydani: [{ revize: "A", kdy: "21.09.2026" }],
+        }),
+        dil("D-0003", "Kolík Ø 10 × 40", "11 600", "", "reference", false, { pouzitoV: ["SV-0001"], nahledy: { model: null, vykres: null } }),
+      ],
+    },
+    komentare: [
+      { id: "1", cislo: "D-0002", autor: "Ing. Vedoucí", text: "Proč zkrácení o 20 mm? Nekoliduje to s podpěrou?", odZadavatele: true, vytvoreno: "2026-09-29T15:02:00Z" },
+      { id: "2", cislo: "D-0002", autor: "Jan Hrnek", text: "Nekoliduje, podpěra se posunula taky (S-0001).", odZadavatele: false, vytvoreno: "2026-09-29T16:40:00Z" },
+      { id: "3", cislo: "", autor: "Ing. Vedoucí", text: "Celkově dobré, rám prosím do pátku ke kontrole.", odZadavatele: true, vytvoreno: "2026-09-28T09:15:00Z" },
+    ],
+  };
+}
+</script>
+</body>
+</html>
