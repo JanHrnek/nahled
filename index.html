@@ -66,17 +66,20 @@ button { cursor: pointer; }
 main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 
 .projekt .kod { font-family: var(--mono); font-size: 13px; letter-spacing: 0.04em; color: var(--akcent); }
-.projekt h1 { margin: 2px 0 6px; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+.projekt h1 { margin: 2px 0 6px; font-size: 26px; font-weight: 500; letter-spacing: -0.02em; }
 .projekt .meta { font-size: 13px; color: var(--text-3); }
 .souhrn { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 32px; }
 
 /* ── Stavy (stejné barvy jako v appce) ───────────────────── */
 .stav {
   display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid; border-radius: 999px; padding: 1px 9px;
-  font-size: 12px; font-weight: 500; white-space: nowrap;
+  border: 1px solid; border-radius: 999px; padding: 2px 10px;
+  font-size: 11px; font-weight: 500; white-space: nowrap;
 }
-.stav::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tecka); }
+.stav.velky { padding: 4px 12px; font-size: 13px; }
+/* Tečka jen v souhrnu nahoře — štítky v řádcích ji v appce nemají. */
+.souhrn .stav { font-size: 12px; padding: 2px 10px; }
+.souhrn .stav::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tecka); }
 .stav.rozpracovany { --tecka: #fbbf24; border-color: #fde68a; background: #fffbeb; color: #78350f; }
 .stav.hotovy       { --tecka: #16a34a; border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
 .stav.keKontrole   { --tecka: #f87171; border-color: #fecaca; background: #fef2f2; color: #b3261e; }
@@ -88,21 +91,25 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 /* ── Koše položek ────────────────────────────────────────── */
 .kos { margin-bottom: 28px; }
 .kos h2 {
-  display: flex; align-items: baseline; gap: 10px; margin: 0;
+  display: flex; align-items: center; gap: 12px; margin: 0;
   padding: 8px 16px; border: 1px solid var(--okraj); border-bottom: 0;
-  border-radius: 10px 10px 0 0; background: var(--akcent-jemny);
+  border-radius: 8px 8px 0 0;
   font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--akcent);
 }
-.kos h2 span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-3); font-size: 12px; }
-.radky { border: 1px solid var(--okraj); border-radius: 0 0 10px 10px; background: var(--plocha); overflow: hidden; }
-.radek {
-  display: grid; grid-template-columns: 96px minmax(0, 1fr) 160px 56px 128px 40px;
-  align-items: center; gap: 12px; width: 100%;
-  padding: 10px 16px; border: 0; border-bottom: 1px solid var(--okraj);
-  background: none; text-align: left;
+/* Sytost záhlaví jde po stavbě výrobku jako v appce: celek nejtmavší. */
+.kos.sestava h2 { background: rgba(21, 41, 58, 0.20); }
+.kos.podsestava h2 { background: rgba(21, 41, 58, 0.11); }
+.kos.dil h2 { background: rgba(21, 41, 58, 0.05); }
+.kos h2 span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-3); font-size: 11px; }
+.radky { border: 1px solid var(--okraj); border-radius: 0 0 8px 8px; background: var(--plocha); overflow: hidden; }
+/* Šířky sloupců jako v appce: číslo 74, materiál 112, revize 56, stav 112. */
+.radek, .zahlavi {
+  display: grid; grid-template-columns: 74px minmax(0, 1fr) 112px 56px 112px 16px;
+  align-items: center; gap: 16px; width: 100%; padding: 10px 16px;
 }
+.radek { border: 0; border-bottom: 1px solid var(--okraj); background: none; text-align: left; }
 .radek:last-child { border-bottom: 0; }
-.radek:hover { background: var(--akcent-jemny); }
+.radek:hover { background: var(--bg); }
 .radek.ztlumeny { opacity: 0.55; }
 /* Zrušený a referenční díl podbarvené jako v appce. Po nich se nic nechce,
    takže se netlumí ani bez souboru — podbarvení už řeklo svoje. */
@@ -110,25 +117,39 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 .radek.zruseny:hover { background: rgba(254, 242, 242, 0.7); }
 .radek.reference { background: rgba(245, 243, 255, 0.7); }
 .radek.reference:hover { background: rgba(237, 233, 254, 0.6); }
-.radek .cislo { font-family: var(--mono); font-size: 14px; }
-.radek .popis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.radek .material { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.radek .kom { font-size: 12px; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
-.radek .kom.ma { color: var(--akcent); font-weight: 600; }
-.revize { font-family: var(--mono); font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
-.revize .vydano { width: 7px; height: 7px; border-radius: 50%; background: #3b82f6; }
-.revize .nevydano { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--text-3); }
-.zahlavi {
-  display: grid; grid-template-columns: 96px minmax(0, 1fr) 160px 56px 128px 40px; gap: 12px;
-  padding: 6px 16px; border-bottom: 1px solid var(--okraj);
-  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3);
+.radek .cislo { font-family: var(--mono); font-size: 15px; font-variant-numeric: tabular-nums; }
+.radek .cislo .predpona { color: var(--akcent); }
+.radek .cislo .zbytek { font-weight: 500; }
+.radek .popis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
+.radek .popis.prazdny { font-weight: 400; font-style: italic; color: var(--text-3); }
+.radek .material { font-size: 12px; color: var(--text-2); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radek .rev-bunka { justify-self: end; }
+.radek .stav-bunka { justify-self: center; }
+.radek .sipka { color: var(--text-3); text-align: right; }
+/* Bublina s počtem komentářů u popisu, jako v appce. */
+.bublina {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; vertical-align: 1px;
+  border: 1px solid var(--okraj); border-radius: 999px; padding: 0 6px;
+  font-size: 11px; font-weight: 500; font-style: normal; color: var(--text-3);
 }
+.bublina svg { width: 12px; height: 12px; }
+.revize { font-family: var(--mono); font-size: 12px; color: var(--text-3); display: inline-flex; align-items: center; gap: 6px; }
+.revize .puvodni { opacity: 0.4; }
+/* Vydáno: plná zelená tečka. Nevydáno: jen obrys — je to stav, ne chyba. */
+.revize .vydano { width: 8px; height: 8px; border-radius: 50%; background: #15803d; }
+.revize .nevydano { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--text-3); opacity: 0.5; }
+.zahlavi {
+  padding: 6px 16px; border-bottom: 1px solid var(--okraj); background: var(--bg);
+  font-size: 10px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-3);
+}
+.zahlavi .vpravo { text-align: right; }
+.zahlavi .stred { text-align: center; }
 @media (max-width: 720px) {
-  .radek, .zahlavi { grid-template-columns: 76px minmax(0, 1fr) auto; row-gap: 2px; }
+  .radek, .zahlavi { grid-template-columns: 74px minmax(0, 1fr) auto; row-gap: 4px; gap: 12px; }
   .zahlavi { display: none; }
-  .radek .material, .radek .kom { display: none; }
-  .radek .rev-bunka { grid-column: 3; grid-row: 1; justify-self: end; }
-  .radek .stav-bunka { grid-column: 2 / 4; grid-row: 2; }
+  .radek .material, .radek .sipka { display: none; }
+  .radek .rev-bunka { grid-column: 3; grid-row: 1; }
+  .radek .stav-bunka { grid-column: 2 / 4; grid-row: 2; justify-self: start; }
 }
 
 /* ── Komentáře ───────────────────────────────────────────── */
@@ -514,10 +535,10 @@ function vykresliPrehled() {
     if (!radky.length) return "";
     const zacatek = 80 + poradiKose++ * 70;
     return `
-      <section class="kos${anim ? " anim-karta" : ""}"${zpozdeni(zacatek)}>
+      <section class="kos ${skupina}${anim ? " anim-karta" : ""}"${zpozdeni(zacatek)}>
         <h2>${nadpis} <span>${radky.length}</span></h2>
         <div class="radky">
-          <div class="zahlavi"><span>Číslo</span><span>Popis</span><span>Materiál</span><span>Rev.</span><span>Stav</span><span></span></div>
+          <div class="zahlavi"><span>Číslo</span><span>Popis</span><span class="vpravo">Materiál</span><span class="vpravo">Rev.</span><span class="stred">Stav</span><span></span></div>
           ${radky.map((p, i) => radek(p, anim ? zacatek + 60 + Math.min(i, 14) * 16 : null)).join("")}
         </div>
       </section>`;
@@ -556,16 +577,26 @@ async function obnovRucne() {
 }
 
 function revize(p) {
-  const znak = p.revize ? h(p.revize) : "—";
+  // Prázdná revize je originál — tichá čárka, ať písmeno revize bije do očí.
+  const znak = p.revize ? h(p.revize) : `<span class="puvodni">–</span>`;
   const tecka = p.vydano
     ? `<span class="vydano" title="Výkres této revize je vydaný"></span>`
     : `<span class="nevydano" title="Výkres této revize ještě není vydaný"></span>`;
   return `<span class="revize">${znak}${tecka}</span>`;
 }
 
-function stitek(stav) {
-  return `<span class="stav ${h(stav)}">${h(NAZVY_STAVU[stav] || stav)}</span>`;
+function stitek(stav, velky = false) {
+  return `<span class="stav ${h(stav)}${velky ? " velky" : ""}">${h(NAZVY_STAVU[stav] || stav)}</span>`;
 }
+
+/** Číslo jako v appce: předpona v barvě akcentu, pořadové číslo tučněji. */
+function cislo(text) {
+  const i = text.indexOf("-");
+  if (i <= 0) return `<span class="zbytek">${h(text)}</span>`;
+  return `<span class="predpona">${h(text.slice(0, i + 1))}</span><span class="zbytek">${h(text.slice(i + 1))}</span>`;
+}
+
+const IKONA_KOMENTARE = `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v6a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.5V11h-.5A1.5 1.5 0 0 1 2 9.5z"/></svg>`;
 
 function radek(p, zpozdeniMs = null) {
   const pocet = komentareK(p.cislo).length;
@@ -585,12 +616,14 @@ function radek(p, zpozdeniMs = null) {
       : "";
   return `
     <button class="${trida}" data-cislo="${h(p.cislo)}"${popisek ? ` title="${popisek}"` : ""}${styl}>
-      <span class="cislo">${h(p.cislo)}</span>
-      <span class="popis" title="${h(p.popis)}">${h(p.popis) || "—"}</span>
-      <span class="material" title="${h(p.material)}">${h(p.material)}</span>
+      <span class="cislo">${cislo(p.cislo)}</span>
+      <span class="popis${p.popis ? "" : " prazdny"}" title="${h(p.popis)}">${h(p.popis) || "bez popisu"}${
+        pocet ? `<span class="bublina" title="${pocet} ${sklonuj(pocet, "komentář", "komentáře", "komentářů")}">${IKONA_KOMENTARE}${pocet}</span>` : ""
+      }</span>
+      <span class="material" title="${h(p.material)}">${h(p.material) || "—"}</span>
       <span class="rev-bunka">${revize(p)}</span>
       <span class="stav-bunka">${stitek(p.stav)}</span>
-      <span class="kom${pocet ? " ma" : ""}" title="Komentáře">${pocet ? `💬 ${pocet}` : ""}</span>
+      <span class="sipka">›</span>
     </button>`;
 }
 
@@ -748,7 +781,7 @@ function vykresliObsahDetailu() {
       + (p.vydano ? "" : `<div class="varovani">Aktuální revize ${h(p.revize) || "(originál)"} ještě vydaná není.</div>`);
 
   const udaje = [
-    udaj("Stav", stitek(p.stav)),
+    udaj("Stav", stitek(p.stav, true)),
     udaj("Typ", h(NAZVY_TYPU[p.typ] || p.typ) || nic),
     udaj("Materiál", h(p.material) || nic),
     udaj("Revize", revize),
