@@ -104,6 +104,12 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 .radek:last-child { border-bottom: 0; }
 .radek:hover { background: var(--akcent-jemny); }
 .radek.ztlumeny { opacity: 0.55; }
+/* Zrušený a referenční díl podbarvené jako v appce. Po nich se nic nechce,
+   takže se netlumí ani bez souboru — podbarvení už řeklo svoje. */
+.radek.zruseny { background: #fef2f2; }
+.radek.zruseny:hover { background: rgba(254, 242, 242, 0.7); }
+.radek.reference { background: rgba(245, 243, 255, 0.7); }
+.radek.reference:hover { background: rgba(237, 233, 254, 0.6); }
 .radek .cislo { font-family: var(--mono); font-size: 14px; }
 .radek .popis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .radek .material { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -226,7 +232,16 @@ dl.udaje { flex: 1; min-width: 0; margin: 0; font-size: 14px; }
   font-size: 12px; color: var(--text-2);
 }
 .historie-tl:hover { background: var(--bg); color: var(--text); }
-.udaj .denik { margin-top: 8px; padding-left: 12px; border-left: 1px solid var(--okraj); display: grid; gap: 6px; }
+.udaj .denik { margin: 8px 0 0; padding-left: 12px; border-left: 1px solid var(--okraj); display: grid; gap: 6px; }
+/* Plynulé rozbalení jako v appce: výška jede přes grid-template-rows.
+   Přepíná se třídou přímo na prvku, ne překreslením — jinak by se
+   rozbalení neanimovalo. */
+.rozbal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s ease-in-out; }
+.rozbal.otevreno { grid-template-rows: 1fr; }
+.rozbal > div { min-height: 0; overflow: hidden; }
+.historie-tl svg { width: 12px; height: 12px; vertical-align: -1px; transition: transform 0.3s; }
+.historie-tl.otevreno svg { transform: rotate(180deg); }
+.radek-udaje { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; }
 .denik li { font-size: 13px; }
 .denik .poznamka { color: var(--text-2); }
 .okoli { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px 24px; border-top: 1px solid var(--okraj); }
@@ -275,6 +290,48 @@ dl.udaje { flex: 1; min-width: 0; margin: 0; font-size: 14px; }
 .hlaska { max-width: 560px; margin: 80px auto; text-align: center; color: var(--text-2); padding: 0 16px; }
 .hlaska h1 { font-size: 20px; color: var(--text); margin: 0 0 8px; }
 footer { max-width: 1120px; margin: 0 auto; padding: 0 16px 40px; font-size: 12px; color: var(--text-3); }
+/* ── Animace — stejné křivky a délky jako v appce ─────────── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes radekIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes kartaIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.94) translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes popOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.94) translateY(6px); } }
+@keyframes toc { to { transform: rotate(360deg); } }
+.anim-fade { animation: fadeIn 0.34s ease-out both; }
+.anim-karta { animation: kartaIn 0.4s cubic-bezier(0.2, 0.85, 0.25, 1) backwards; }
+.anim-radek { animation: radekIn 0.28s ease-out backwards; }
+.pozadi.otvira { animation: fadeIn 0.34s ease-out both; }
+.pozadi.otvira .detail { animation: popIn 0.42s cubic-bezier(0.2, 0.85, 0.25, 1) backwards; }
+.pozadi.zavira { animation: fadeOut 0.28s ease-in both; }
+.pozadi.zavira .detail { animation: popOut 0.28s ease-in both; }
+.detail.prepnuti > * { animation: fadeIn 0.3s ease-out both; }
+.lupa.otvira { animation: fadeIn 0.25s ease-out both; }
+.lupa.zavira { animation: fadeOut 0.2s ease-in both; }
+/* Odezva tlačítek: plynulé přebarvení a jemné zmáčknutí. Rozbalovací
+   přepínače (historie, starší vydání) a řádky se nemačkají — pohyb dělá
+   samo rozbalení nebo otevření detailu. */
+.tl, .krizek, .prepinac button, .soused, .historie-tl, .zavrit, .obnovit, .radek {
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease,
+    box-shadow 0.14s ease, opacity 0.14s ease, transform 0.09s ease;
+}
+.tl:not(:disabled):active, .krizek:active, .prepinac button:active, .zavrit:active, .obnovit:active {
+  transform: scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Ruční obnovení vedle „aktualizováno" */
+.obnovit {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;
+  border: 1px solid var(--okraj); border-radius: 999px; background: var(--plocha);
+  padding: 1px 9px 1px 7px; font-size: 12px; color: var(--text-2); vertical-align: 1px;
+}
+.obnovit:hover { border-color: var(--pole); color: var(--text); }
+.obnovit svg { width: 12px; height: 12px; }
+.obnovit.toci svg { animation: toc 0.8s linear infinite; }
+
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -320,10 +377,14 @@ const SKUPINY = [
 const kod = decodeURIComponent(location.hash.slice(1)).trim();
 const demo = kod === "demo";
 let nahled = null;        // odpověď funkce `nahled`
+let prvniVykresleni = true; // řádky naskakují jen poprvé, ne při každém obnovení
+let nacitam = false;      // běží ruční obnovení
+let animujNahled = false; // přepnutí Model/Výkres — obrázek se prolne
+let casovacZavreni = 0;
 let otevrene = null;      // číslo otevřeného dílu
 let zobrazeni = "model";  // co ukazuje náhled v detailu
 let chybaFormulare = {};  // podle čísla
-let ukazHistorii = false; // rozbalená historie revizí v detailu
+let rozbaleno = {};       // rozbalená historie revizí / starší vydání v detailu
 
 // ── Pomocníci ──────────────────────────────────────────────
 
@@ -443,34 +504,55 @@ function vykresliPrehled() {
     .map((s) => `<span class="stav ${s}">${NAZVY_STAVU[s]} <span class="pocet">${pocty[s]}</span></span>`)
     .join("");
 
+  // Při prvním načtení karty a řádky naskočí po sobě jako v appce.
+  // Při obnovení každou minutu ne — to by stránka pořád poskakovala.
+  const anim = prvniVykresleni;
+  const zpozdeni = (ms) => (anim ? ` style="animation-delay:${ms}ms"` : "");
+  let poradiKose = 0;
   const kose = SKUPINY.map(([skupina, nadpis]) => {
     const radky = vse.filter((p) => p.skupina === skupina);
     if (!radky.length) return "";
+    const zacatek = 80 + poradiKose++ * 70;
     return `
-      <section class="kos">
+      <section class="kos${anim ? " anim-karta" : ""}"${zpozdeni(zacatek)}>
         <h2>${nadpis} <span>${radky.length}</span></h2>
         <div class="radky">
           <div class="zahlavi"><span>Číslo</span><span>Popis</span><span>Materiál</span><span>Rev.</span><span>Stav</span><span></span></div>
-          ${radky.map(radek).join("")}
+          ${radky.map((p, i) => radek(p, anim ? zacatek + 60 + Math.min(i, 14) * 16 : null)).join("")}
         </div>
       </section>`;
   }).join("");
+  const sipkaObnovit = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a6 6 0 1 1-1.8-4.3"/><path d="M16 3.5v3.2h-3.2"/></svg>`;
 
   $("obsah").innerHTML = `
-    <section class="projekt">
+    <section class="projekt${anim ? " anim-fade" : ""}">
       <div class="kod">${h(nahled.projekt)}</div>
       <h1>${h(nahled.nazev || nahled.projekt)}</h1>
       <div class="meta">
         ${vse.length} ${sklonuj(vse.length, "položka", "položky", "položek")}
         · aktualizováno ${kdy(nahled.aktualizovano)}
+        <button class="obnovit${nacitam ? " toci" : ""}" data-obnovit
+          title="Načíst znovu — jinak se stránka obnovuje sama každou minutu">${sipkaObnovit}Obnovit</button>
       </div>
     </section>
-    <div class="souhrn">${souhrn}</div>
+    <div class="souhrn${anim ? " anim-fade" : ""}">${souhrn}</div>
     ${kose || `<p class="hlaska">Projekt zatím nemá žádné díly.</p>`}
-    <section class="karta komentare" id="komentare-projektu">
+    <section class="karta komentare${anim ? " anim-karta" : ""}" id="komentare-projektu"${zpozdeni(80 + poradiKose * 70)}>
       ${komentareHtml("", "Komentáře k projektu")}
     </section>`;
   $("paticka").hidden = false;
+  prvniVykresleni = false;
+}
+
+/** Ruční obnovení. Šipka se točí aspoň chvilku, ať je vidět, že se něco stalo. */
+async function obnovRucne() {
+  if (nacitam) return;
+  nacitam = true;
+  document.querySelector("[data-obnovit]")?.classList.add("toci");
+  await Promise.all([obnov(), new Promise((r) => setTimeout(r, 600))]);
+  nacitam = false;
+  document.querySelector("[data-obnovit]")?.classList.remove("toci");
 }
 
 function revize(p) {
@@ -485,10 +567,24 @@ function stitek(stav) {
   return `<span class="stav ${h(stav)}">${h(NAZVY_STAVU[stav] || stav)}</span>`;
 }
 
-function radek(p) {
+function radek(p, zpozdeniMs = null) {
   const pocet = komentareK(p.cislo).length;
+  const mimoHru = p.stav === "zruseny" || p.stav === "reference";
+  const trida = [
+    "radek",
+    p.stav === "zruseny" ? "zruseny" : "",
+    p.stav === "reference" ? "reference" : "",
+    p.naDisku === false && !mimoHru ? "ztlumeny" : "",
+    zpozdeniMs !== null ? "anim-radek" : "",
+  ].filter(Boolean).join(" ");
+  const styl = zpozdeniMs !== null ? ` style="animation-delay:${zpozdeniMs}ms"` : "";
+  const popisek = p.stav === "zruseny"
+    ? "Zrušený — díl zanikl"
+    : p.stav === "reference"
+      ? "Reference — díl se nevyrábí, je v projektu jen jako podklad"
+      : "";
   return `
-    <button class="radek${p.naDisku === false ? " ztlumeny" : ""}" data-cislo="${h(p.cislo)}">
+    <button class="${trida}" data-cislo="${h(p.cislo)}"${popisek ? ` title="${popisek}"` : ""}${styl}>
       <span class="cislo">${h(p.cislo)}</span>
       <span class="popis" title="${h(p.popis)}">${h(p.popis) || "—"}</span>
       <span class="material" title="${h(p.material)}">${h(p.material)}</span>
@@ -554,8 +650,11 @@ async function odesliKomentar(formular) {
 // ── Detail dílu ────────────────────────────────────────────
 
 function otevriDetail(cislo) {
+  const pozadi = $("pozadi");
+  const uzOtevreny = !pozadi.hidden && !pozadi.classList.contains("zavira");
+  clearTimeout(casovacZavreni);
   otevrene = cislo;
-  ukazHistorii = false;
+  rozbaleno = {};
   // Model má přednost jako v appce; výkres, jen když model chybí.
   const nahledy = polozky().find((x) => x.cislo === cislo)?.nahledy || {};
   zobrazeni = !nahledy.model && nahledy.vykres ? "vykres" : "model";
@@ -563,12 +662,37 @@ function otevriDetail(cislo) {
   $("detail").innerHTML = "";
   vykresliDetail();
   $("detail").scrollTop = 0;
+
+  pozadi.classList.remove("zavira");
+  if (uzOtevreny) {
+    // Jiný díl ve stejné kartě (proklik na sousední číslo) — karta zůstane,
+    // jen se prolne obsah. Třída pryč hned po animaci, jinak by se prolínal
+    // i při každém obnovení dat.
+    const detail = $("detail");
+    detail.classList.remove("prepnuti");
+    void detail.offsetWidth;
+    detail.classList.add("prepnuti");
+    setTimeout(() => detail.classList.remove("prepnuti"), 320);
+  } else {
+    pozadi.classList.remove("otvira");
+    void pozadi.offsetWidth;
+    pozadi.classList.add("otvira");
+  }
 }
 
+/** Karta odejde, nezmizí naráz — stejně jako v appce. */
 function zavriDetail() {
   otevrene = null;
-  $("pozadi").hidden = true;
   document.body.style.overflow = "";
+  const pozadi = $("pozadi");
+  if (pozadi.hidden) return;
+  pozadi.classList.remove("otvira");
+  pozadi.classList.add("zavira");
+  clearTimeout(casovacZavreni);
+  casovacZavreni = setTimeout(() => {
+    pozadi.hidden = true;
+    pozadi.classList.remove("zavira");
+  }, 280);
 }
 
 function vykresliDetail() {
@@ -583,7 +707,7 @@ function vykresliObsahDetailu() {
   const nahledy = p.nahledy || {};
   const adresa = adresaObrazku(nahledy[zobrazeni]);
   const obraz = adresa
-    ? `<img src="${h(adresa)}" alt="Náhled ${zobrazeni === "vykres" ? "výkresu" : "dílu"} ${h(p.cislo)}" draggable="false">
+    ? `<img src="${h(adresa)}" alt="Náhled ${zobrazeni === "vykres" ? "výkresu" : "dílu"} ${h(p.cislo)}" draggable="false"${animujNahled ? ' class="anim-fade"' : ""}>
        <button class="zvetsit" data-lupa="${h(adresa)}" title="Zvětšit"><span>Zvětšit</span></button>`
     : `<p class="nic">Náhled ${zobrazeni === "vykres" ? "výkresu" : "modelu"} zatím není.</p>`;
 
@@ -591,21 +715,36 @@ function vykresliObsahDetailu() {
   const udaj = (popisek, obsah, trida = "") =>
     `<div class="udaj"><dt>${popisek}</dt><dd class="${trida}">${obsah}</dd></div>`;
 
-  const historie = p.historie || [];
-  const revize = `<b>${h(p.revize) || "originál"}</b>` + (historie.length > 1
-    ? ` <button class="historie-tl" data-historie>historie (${historie.length}) ${ukazHistorii ? "▴" : "▾"}</button>`
-      + (ukazHistorii
-        ? `<ol class="denik">${historie.map((r) => `
-            <li><b>${h(r.revize) || "originál"}</b><span class="kdy">${h(r.kdy)}</span>
-              ${r.poznamka ? `<div class="poznamka">${h(r.poznamka)}</div>` : ""}</li>`).join("")}</ol>`
-        : "")
-    : "");
+  // Tlačítko s šipkou a pod ním obsah, který se plynule rozbalí.
+  const sipka = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M5 7.5 10 12.5 15 7.5"/></svg>`;
+  const tlacitko = (klic, text) =>
+    `<button class="historie-tl${rozbaleno[klic] ? " otevreno" : ""}" data-rozbal="${klic}">${text} ${sipka}</button>`;
+  const obsah = (klic, html) =>
+    `<div class="rozbal${rozbaleno[klic] ? " otevreno" : ""}" data-obsah="${klic}"><div>${html}</div></div>`;
 
+  const historie = p.historie || [];
+  const revize = `<div class="radek-udaje"><b>${h(p.revize) || "originál"}</b>`
+    + (historie.length > 1 ? tlacitko("historie", `historie (${historie.length})`) : "")
+    + `</div>`
+    + (historie.length > 1
+      ? obsah("historie", `<ol class="denik">${historie.map((r) => `
+          <li><b>${h(r.revize) || "originál"}</b><span class="kdy">${h(r.kdy)}</span>
+            ${r.poznamka ? `<div class="poznamka">${h(r.poznamka)}</div>` : ""}</li>`).join("")}</ol>`)
+      : "");
+
+  // Vydáno: poslední vidět, starší na rozbalení — jako v appce.
   const vydani = p.vydani || [];
-  const vydano = vydani.length === 0
+  const [posledni, ...starsi] = vydani;
+  const vydaniRadek = (v) => `<b>${h(v.revize) || "originál"}</b><span class="kdy">${h(v.kdy)}</span>`;
+  const vydano = !posledni
     ? `<span class="tlumene" style="font-style:normal">zatím nevydáno</span>`
-    : `<ol class="vydani">${vydani.map((v) =>
-        `<li><b>${h(v.revize) || "originál"}</b><span class="kdy">${h(v.kdy)}</span></li>`).join("")}</ol>`
+    : `<div class="radek-udaje"><span>${vydaniRadek(posledni)}</span>`
+      + (starsi.length ? tlacitko("vydani", `starší (${starsi.length})`) : "")
+      + `</div>`
+      + (starsi.length
+        ? obsah("vydani", `<ol class="denik">${starsi.map((v) => `<li>${vydaniRadek(v)}</li>`).join("")}</ol>`)
+        : "")
       + (p.vydano ? "" : `<div class="varovani">Aktuální revize ${h(p.revize) || "(originál)"} ještě vydaná není.</div>`);
 
   const udaje = [
@@ -666,6 +805,7 @@ function vykresliObsahDetailu() {
     ${okoli}
     <div class="sekce komentare">${komentareHtml(p.cislo, "Komentáře")}</div>`;
 
+  animujNahled = false;
   $("pozadi").hidden = false;
   document.body.style.overflow = "hidden";
 }
@@ -673,8 +813,21 @@ function vykresliObsahDetailu() {
 function otevriLupu(adresa) {
   const lupa = $("lupa");
   lupa.innerHTML = `<button class="zavrit" data-zavrit-lupu>Zavřít</button><img src="${h(adresa)}" alt="" draggable="false">`;
-  lupa.classList.remove("plna");
+  lupa.classList.remove("plna", "zavira", "otvira");
   lupa.hidden = false;
+  void lupa.offsetWidth;
+  lupa.classList.add("otvira");
+}
+
+function zavriLupu() {
+  const lupa = $("lupa");
+  if (lupa.hidden) return;
+  lupa.classList.remove("otvira");
+  lupa.classList.add("zavira");
+  setTimeout(() => {
+    lupa.hidden = true;
+    lupa.classList.remove("zavira");
+  }, 200);
 }
 
 // ── Události ───────────────────────────────────────────────
@@ -683,19 +836,26 @@ document.addEventListener("click", (e) => {
   // Klik vedle karty (na ztmavené pozadí) detail zavře.
   if (e.target === $("pozadi")) return zavriDetail();
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-zavrit-lupu], [data-historie], #lupa img"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img"
   );
   if (!cil || cil.matches("form")) return;
   if (cil.matches("#lupa img")) return $("lupa").classList.toggle("plna");
-  if (cil.matches("[data-zavrit-lupu]")) return ($("lupa").hidden = true);
+  if (cil.matches("[data-zavrit-lupu]")) return zavriLupu();
+  if (cil.matches("[data-obnovit]")) return obnovRucne();
   if (cil.matches("[data-lupa]")) return otevriLupu(cil.dataset.lupa);
   if (cil.matches("[data-zavrit]")) return zavriDetail();
-  if (cil.matches("[data-historie]")) {
-    ukazHistorii = !ukazHistorii;
-    return vykresliDetail();
+  if (cil.matches("[data-rozbal]")) {
+    // Bez překreslení — třída na prvku, ať se rozbalení animuje.
+    const klic = cil.dataset.rozbal;
+    rozbaleno[klic] = !rozbaleno[klic];
+    cil.classList.toggle("otevreno", rozbaleno[klic]);
+    $("detail").querySelector(`[data-obsah="${klic}"]`)?.classList.toggle("otevreno", rozbaleno[klic]);
+    return;
   }
   if (cil.matches("[data-zobrazeni]")) {
+    if (zobrazeni === cil.dataset.zobrazeni) return;
     zobrazeni = cil.dataset.zobrazeni;
+    animujNahled = true;
     return vykresliDetail();
   }
   if (cil.dataset.cislo) otevriDetail(cil.dataset.cislo);
@@ -709,7 +869,7 @@ document.addEventListener("submit", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  if (!$("lupa").hidden) $("lupa").hidden = true;
+  if (!$("lupa").hidden) zavriLupu();
   else if (otevrene) zavriDetail();
 });
 
@@ -770,9 +930,10 @@ function ukazkovaData() {
             { revize: "B", poznamka: "Zkrácené o 20 mm", kdy: "29.09.2026" },
             { revize: "A", poznamka: "Sražená hrana", kdy: "20.09.2026" },
           ],
-          vydani: [{ revize: "A", kdy: "21.09.2026" }],
+          vydani: [{ revize: "A", kdy: "21.09.2026" }, { revize: "", kdy: "15.09.2026" }],
         }),
         dil("D-0003", "Kolík Ø 10 × 40", "11 600", "", "reference", false, { pouzitoV: ["SV-0001"], nahledy: { model: null, vykres: null } }),
+        dil("D-0004", "Stará výztuha", "S235JR", "", "zruseny", false, { naDisku: false, pouzitoV: [], nahledy: { model: null, vykres: null } }),
       ],
     },
     komentare: [
