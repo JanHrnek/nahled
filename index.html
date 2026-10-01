@@ -811,11 +811,15 @@ function vykresliObsahDetailu() {
   const obsah = (klic, html) =>
     `<div class="rozbal${rozbaleno[klic] ? " otevreno" : ""}" data-obsah="${klic}"><div>${html}</div></div>`;
 
-  const historie = p.historie || [];
+  // Aktivní revize je vidět hned vedle, do počtu i seznamu patří jen ty
+  // před ní — stejně jako „starší" u Vydáno (a jako v appce).
+  const vsechnyRevize = p.historie || [];
+  const historie = vsechnyRevize.length && vsechnyRevize[0].revize === p.revize
+    ? vsechnyRevize.slice(1) : vsechnyRevize;
   const revize = `<div class="radek-udaje"><b>${h(p.revize) || "originál"}</b>`
-    + (historie.length > 1 ? tlacitko("historie", `historie (${historie.length})`) : "")
+    + (historie.length ? tlacitko("historie", `historie (${historie.length})`) : "")
     + `</div>`
-    + (historie.length > 1
+    + (historie.length
       ? obsah("historie", `<ol class="denik">${historie.map((r) => `
           <li><b>${h(r.revize) || "originál"}</b><span class="kdy">${h(r.kdy)}</span>
             ${r.poznamka ? `<div class="poznamka">${h(r.poznamka)}</div>` : ""}</li>`).join("")}</ol>`)
