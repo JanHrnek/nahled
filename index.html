@@ -10,6 +10,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- three.js pro 3D náhled — stáhne se, až když někdo 3D otevře. -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
 <style>
 /*
  * Webový náhled projektu pro zadavatele.
@@ -311,6 +318,32 @@ dl.udaje { flex: 1; min-width: 0; margin: 0; font-size: 14px; }
   height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: #fff; color: #15293a; font-size: 13px; font-weight: 500;
 }
 
+/* ── 3D náhled ───────────────────────────────────────────── */
+.misto3d { position: absolute; inset: 0; }
+.prohlizec3d { position: absolute; inset: 0; container-type: size; background: #fff; cursor: grab; touch-action: none; }
+.prohlizec3d:active { cursor: grabbing; }
+.prohlizec3d canvas { display: block; width: 100%; height: 100%; outline: none; }
+.prohlizec3d .vodoznak3d { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; pointer-events: none; }
+.prohlizec3d .vodoznak3d span {
+  transform: rotate(-32deg); white-space: nowrap; letter-spacing: 0.1em;
+  font-size: 4.6cqw; font-weight: 700; color: rgba(198, 40, 40, 0.16);
+}
+.prohlizec3d .stav3d {
+  position: absolute; inset: 0; margin: 0; display: grid; place-items: center;
+  font-size: 12px; color: var(--text-3); pointer-events: none;
+}
+.prohlizec3d .napoveda3d, .prohlizec3d .zvetsit3d {
+  position: absolute; bottom: 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px; font-size: 11px; font-weight: 500; color: var(--text-2);
+  box-shadow: 0 1px 2px rgba(15, 30, 45, 0.1);
+}
+.prohlizec3d .napoveda3d { left: 8px; margin: 0; pointer-events: none; transition: opacity 0.4s; }
+.prohlizec3d.pouzito .napoveda3d { opacity: 0; }
+.prohlizec3d .zvetsit3d { right: 8px; border: 0; cursor: zoom-in; }
+.prohlizec3d .zvetsit3d:hover { color: var(--text); }
+.lupa .prohlizec3d { position: relative; inset: auto; width: 100%; height: calc(100vh - 32px); border-radius: 8px; }
+.lupa .prohlizec3d .zvetsit3d { display: none; }
+
 /* ── Stavy stránky ───────────────────────────────────────── */
 .hlaska { max-width: 560px; margin: 80px auto; text-align: center; color: var(--text-2); padding: 0 16px; }
 .hlaska h1 { font-size: 20px; color: var(--text); margin: 0 0 8px; }
@@ -410,6 +443,7 @@ let otevrene = null;      // číslo otevřeného dílu
 let zobrazeni = "model";  // co ukazuje náhled v detailu
 let chybaFormulare = {};  // podle čísla
 let rozbaleno = {};       // rozbalená historie revizí / starší vydání v detailu
+let stiskNaPozadi = false; // detail zavře jen klik, který na pozadí i začal
 
 // ── Pomocníci ──────────────────────────────────────────────
 
@@ -756,8 +790,11 @@ function vykresliObsahDetailu() {
   if (!p) return zavriDetail();
 
   const nahledy = p.nahledy || {};
-  const adresa = adresaObrazku(nahledy[zobrazeni]);
-  const obraz = adresa
+  if (zobrazeni === "3d" && !nahledy.model3d) zobrazeni = "model";
+  const adresa = zobrazeni === "3d" ? null : adresaObrazku(nahledy[zobrazeni]);
+  const obraz = zobrazeni === "3d"
+    ? `<div class="misto3d${animujNahled ? " anim-fade" : ""}" data-misto3d></div>`
+    : adresa
     ? `<img src="${h(adresa)}" alt="Náhled ${zobrazeni === "vykres" ? "výkresu" : "dílu"} ${h(p.cislo)}" draggable="false"${animujNahled ? ' class="anim-fade"' : ""}>
        <button class="zvetsit" data-lupa="${h(adresa)}" title="Zvětšit"><span>Zvětšit</span></button>`
     : `<p class="nic">Náhled ${zobrazeni === "vykres" ? "výkresu" : "modelu"} zatím není.</p>`;
@@ -850,12 +887,16 @@ function vykresliObsahDetailu() {
         <div class="prepinac">
           <button data-zobrazeni="model" class="${zobrazeni === "model" ? "aktivni" : ""}${nahledy.model ? "" : " chybi"}">Model</button>
           <button data-zobrazeni="vykres" class="${zobrazeni === "vykres" ? "aktivni" : ""}${nahledy.vykres ? "" : " chybi"}">Výkres</button>
+          ${nahledy.model3d ? `<button data-zobrazeni="3d" class="${zobrazeni === "3d" ? "aktivni" : ""}">3D</button>` : ""}
         </div>
       </div>
       <dl class="udaje">${udaje}</dl>
     </div>
     ${okoli}
     <div class="sekce komentare">${komentareHtml(p.cislo, "Komentáře")}</div>`;
+
+  const misto = $("detail").querySelector("[data-misto3d]");
+  if (misto) vlozProhlizec(misto, adresaObrazku(nahledy.model3d));
 
   animujNahled = false;
   $("pozadi").hidden = false;
@@ -879,21 +920,220 @@ function zavriLupu() {
   setTimeout(() => {
     lupa.hidden = true;
     lupa.classList.remove("zavira");
+    // 3D se vrátí do detailu (s otočením, jak ho zadavatel nechal).
+    if (lupa3d) {
+      lupa3d = false;
+      if (otevrene) vykresliDetail();
+    }
   }, 200);
+}
+
+// ── 3D náhled ──────────────────────────────────────────────
+// Model chodí ve vlastním formátu JHM1 z appky (src-tauri/src/model3d.rs):
+// přeškálovaný do ±1 a zhrubnutý, žádný .glb. Prohlížeč jen otáčí
+// a přibližuje — měřit nejde. Je jeden na celou stránku a detail ho při
+// každém překreslení jen znovu vloží, ať se otočení neztratí.
+
+let prohlizec = null; // slib — three.js se stahuje až při prvním 3D
+let tah3d = 0;        // poslední vložení; starší (ještě načítající) se zahodí
+let lupa3d = false;   // prohlížeč je právě ve zvětšení
+const modely3d = new Map(); // adresa → slib { pozice, indexy }
+
+function nactiModel3d(adresa) {
+  if (!modely3d.has(adresa)) {
+    const slib = (async () => {
+      const odpoved = await fetch(adresa);
+      if (!odpoved.ok) throw new Error(`HTTP ${odpoved.status}`);
+      const data = new Uint8Array(await odpoved.arrayBuffer());
+      if (String.fromCharCode(...data.subarray(0, 4)) !== "JHM1") throw new Error("neznámý formát");
+      const proud = new Blob([data.subarray(4)]).stream().pipeThrough(new DecompressionStream("deflate"));
+      const s = new DataView(await new Response(proud).arrayBuffer());
+      const n = s.getUint32(0, true);
+      const m = s.getUint32(4, true);
+      const pozice = new Float32Array(n * 3);
+      for (let i = 0; i < n * 3; i++) pozice[i] = (s.getUint16(8 + 2 * i, true) / 65535) * 2 - 1;
+      const indexy = new Uint32Array(m * 3);
+      const od = 8 + n * 6;
+      for (let i = 0; i < m * 3; i++) indexy[i] = s.getUint32(od + 4 * i, true);
+      return { pozice, indexy };
+    })();
+    slib.catch(() => modely3d.delete(adresa)); // příště zkusit znovu
+    modely3d.set(adresa, slib);
+  }
+  return modely3d.get(adresa);
+}
+
+async function vytvorProhlizec() {
+  const [THREE, { OrbitControls }] = await Promise.all([
+    import("three"),
+    import("three/addons/controls/OrbitControls.js"),
+  ]);
+
+  const obal = document.createElement("div");
+  obal.className = "prohlizec3d";
+  obal.innerHTML = `
+    <p class="stav3d"></p>
+    <div class="vodoznak3d" aria-hidden="true"><span>NÁHLED — NEPLATNÝ PRO VÝROBU</span></div>
+    <p class="napoveda3d">Tažením otočíte, kolečkem přiblížíte</p>
+    <button class="zvetsit3d" data-lupa3d>Zvětšit</button>`;
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0xffffff);
+  obal.prepend(renderer.domElement);
+
+  const scena = new THREE.Scene();
+  const kamera = new THREE.PerspectiveCamera(30, 1.41, 0.01, 100);
+  scena.add(new THREE.HemisphereLight(0xffffff, 0x8796a3, 2.4));
+  // Hlavní světlo jde s kamerou — model je nasvícený, ať se otočí kamkoli.
+  const svetlo = new THREE.DirectionalLight(0xffffff, 1.9);
+  svetlo.position.set(1, 2, 3);
+  kamera.add(svetlo);
+  scena.add(kamera);
+
+  const ovladani = new OrbitControls(kamera, renderer.domElement);
+  ovladani.enablePan = false;
+  ovladani.enableDamping = true;
+  ovladani.dampingFactor = 0.12;
+
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xc9d3db, metalness: 0.1, roughness: 0.65, flatShading: true, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+  });
+  const materialHran = new THREE.LineBasicMaterial({ color: 0x40566a });
+  let sit = null;
+  let hrany = null;
+
+  let kreslit = true;
+  let bezi = false;
+  ovladani.addEventListener("change", () => (kreslit = true));
+  ovladani.addEventListener("start", () => obal.classList.add("pouzito"));
+  // Kreslí se jen při pohybu; smyčka skončí, když prohlížeč není na stránce.
+  const smycka = () => {
+    if (!renderer.domElement.isConnected) return (bezi = false);
+    if (ovladani.update() || kreslit) {
+      renderer.render(scena, kamera);
+      kreslit = false;
+    }
+    requestAnimationFrame(smycka);
+  };
+  new ResizeObserver(() => {
+    const w = obal.clientWidth;
+    const v = obal.clientHeight;
+    if (!w || !v) return;
+    renderer.setSize(w, v, false);
+    kamera.aspect = w / v;
+    kamera.updateProjectionMatrix();
+    kreslit = true;
+  }).observe(obal);
+
+  return {
+    obal,
+    adresa: null,
+    spust() {
+      kreslit = true;
+      if (!bezi) {
+        bezi = true;
+        requestAnimationFrame(smycka);
+      }
+    },
+    stav(text) {
+      obal.querySelector(".stav3d").textContent = text;
+    },
+    ukaz(model) {
+      if (sit) {
+        scena.remove(sit, hrany);
+        sit.geometry.dispose();
+        hrany.geometry.dispose();
+        sit = hrany = null;
+      }
+      kreslit = true;
+      if (!model) return;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(model.pozice, 3));
+      g.setIndex(new THREE.BufferAttribute(model.indexy, 1));
+      g.computeBoundingSphere();
+      sit = new THREE.Mesh(g, material);
+      // Obrys jen na ostrých hranách — zaoblení z trojúhelníků zůstanou hladká.
+      hrany = new THREE.LineSegments(new THREE.EdgesGeometry(g, 40), materialHran);
+      scena.add(sit, hrany);
+
+      // Izometrie jako v SolidWorksu, celý model v záběru.
+      const { center, radius } = g.boundingSphere;
+      const vzdalenost = radius / Math.sin(THREE.MathUtils.degToRad(kamera.fov / 2)) * 1.08;
+      ovladani.target.copy(center);
+      kamera.position.set(1, 1, 1).normalize().multiplyScalar(vzdalenost).add(center);
+      ovladani.minDistance = radius * 0.8;
+      ovladani.maxDistance = vzdalenost * 4;
+      ovladani.update();
+      obal.classList.remove("pouzito");
+    },
+  };
+}
+
+async function vlozProhlizec(misto, adresa) {
+  if (lupa3d) {
+    misto.innerHTML = `<p class="nic" style="position:absolute;inset:0;display:grid;place-items:center">3D je otevřené ve zvětšení.</p>`;
+    return;
+  }
+  const tah = ++tah3d;
+  let p;
+  try {
+    prohlizec ??= vytvorProhlizec();
+    p = await prohlizec;
+  } catch (e) {
+    prohlizec = null; // třeba nedostupné CDN — příště znovu
+    if (misto.isConnected) misto.innerHTML = `<p class="nic">3D náhled se nepodařilo spustit.</p>`;
+    return;
+  }
+  if (tah !== tah3d || !misto.isConnected) return;
+  misto.replaceChildren(p.obal);
+  p.spust();
+  if (p.adresa === adresa) return;
+
+  p.adresa = adresa;
+  p.ukaz(null);
+  p.stav("Načítám 3D…");
+  try {
+    const model = await nactiModel3d(adresa);
+    if (p.adresa !== adresa) return;
+    p.stav("");
+    p.ukaz(model);
+  } catch (e) {
+    if (p.adresa !== adresa) return;
+    p.adresa = null;
+    p.stav("3D náhled se nepodařilo načíst.");
+  }
+}
+
+async function otevriLupu3d() {
+  const p = await prohlizec;
+  const misto = p.obal.parentElement;
+  lupa3d = true;
+  const lupa = $("lupa");
+  lupa.innerHTML = `<button class="zavrit" data-zavrit-lupu>Zavřít</button>`;
+  lupa.append(p.obal);
+  if (misto) vlozProhlizec(misto, null); // v detailu zůstane jen poznámka
+  lupa.classList.remove("plna", "zavira", "otvira");
+  lupa.hidden = false;
+  void lupa.offsetWidth;
+  lupa.classList.add("otvira");
+  p.spust();
 }
 
 // ── Události ───────────────────────────────────────────────
 
 document.addEventListener("click", (e) => {
-  // Klik vedle karty (na ztmavené pozadí) detail zavře.
-  if (e.target === $("pozadi")) return zavriDetail();
+  // Klik vedle karty (na ztmavené pozadí) detail zavře — jen když tam
+  // i začal, ne když otáčení 3D modelu skončí kurzorem mimo kartu.
+  if (e.target === $("pozadi")) return stiskNaPozadi ? zavriDetail() : undefined;
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img"
   );
   if (!cil || cil.matches("form")) return;
   if (cil.matches("#lupa img")) return $("lupa").classList.toggle("plna");
   if (cil.matches("[data-zavrit-lupu]")) return zavriLupu();
   if (cil.matches("[data-obnovit]")) return obnovRucne();
+  if (cil.matches("[data-lupa3d]")) return otevriLupu3d();
   if (cil.matches("[data-lupa]")) return otevriLupu(cil.dataset.lupa);
   if (cil.matches("[data-zavrit]")) return zavriDetail();
   if (cil.matches("[data-rozbal]")) {
@@ -911,6 +1151,10 @@ document.addEventListener("click", (e) => {
     return vykresliDetail();
   }
   if (cil.dataset.cislo) otevriDetail(cil.dataset.cislo);
+});
+
+document.addEventListener("pointerdown", (e) => {
+  stiskNaPozadi = e.target === $("pozadi");
 });
 
 document.addEventListener("submit", (e) => {
@@ -954,6 +1198,12 @@ function obrazekUkazky(text, vykres) {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
+// Úhelník převedený appkou do JHM1 (model3d.rs) — 3D v ukázce. Funkce, ne
+// konstanta: ukázka se načítá dřív, než skript dojde sem.
+function ukazka3d() {
+  return "data:application/octet-stream;base64,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";
+}
+
 function ukazkovaData() {
   if (nahled) return nahled;
   const dil = (cislo, popis, material, revize, stav, vydano, dalsi = {}) => ({
@@ -976,7 +1226,9 @@ function ukazkovaData() {
           historie: [{ revize: "A", poznamka: "Posunuté otvory pro motor", kdy: "29.09.2026" }] },
         { ...dil("S-0001", "Podpěra levá", "", "", "vydany", true), skupina: "podsestava",
           obsahuje: ["D-0001", "D-0002"], pouzitoV: ["SV-0001"] },
-        dil("D-0001", "Čelní plech 250 × 40 × 5", "S235JR", "", "hotovy", true),
+        dil("D-0001", "Čelní plech 250 × 40 × 5", "S235JR", "", "hotovy", true, {
+          nahledy: { model: obrazekUkazky("D-0001", false), vykres: obrazekUkazky("D-0001", true), model3d: ukazka3d() },
+        }),
         dil("D-0002", "Žebro", "S235JR", "B", "rozpracovany", false, {
           poznamkaRevize: "Zkrácené o 20 mm",
           historie: [
