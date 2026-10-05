@@ -399,6 +399,106 @@ footer { max-width: 1120px; margin: 0 auto; padding: 0 16px 40px; font-size: 12p
 .obnovit svg { width: 12px; height: 12px; }
 .obnovit.toci svg { animation: toc 0.8s linear infinite; }
 
+/* ── Vzhled 5.0 (2026-10): stejný jako appka po redesignu ────
+   Karty s měkkým stínem a zaoblením 20 px, štítky stavu jako v CRM
+   (rámeček a písmo sytě, výplň světle), segmentový přepínač, tichá
+   hlavička tabulky. Přepisuje pravidla výš — logika stránky se nemění. */
+:root {
+  --line: #dce4ea;
+  --stin-karta: 0 10px 60px rgba(186, 204, 222, 0.45);
+  --stin-okno: 0 24px 60px rgba(21, 41, 58, 0.25);
+}
+.lista {
+  padding: 14px 24px; border-bottom: 0; box-shadow: var(--stin-karta); position: relative; z-index: 1;
+}
+.lista .znacka {
+  width: 36px; height: 36px; border-radius: 10px; font-size: 14px;
+  background: linear-gradient(to bottom, #34465a, #142636);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 3px 8px -3px rgba(21, 41, 58, 0.5);
+}
+main { padding: 36px 24px 64px; }
+.projekt h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.projekt .kod { font-weight: 600; }
+.souhrn { gap: 8px; margin: 18px 0 28px; }
+
+.stav { border-radius: 6px; font-weight: 600; padding: 2px 8px; }
+.stav.velky { padding: 4px 12px; }
+.souhrn .stav { padding: 4px 12px; font-size: 13px; }
+.stav.rozpracovany { --tecka: #f2c27a; border-color: #f2c27a; background: #fdf1e2; color: #92400e; }
+.stav.hotovy       { --tecka: #86d3a1; border-color: #86d3a1; background: #e7f6ec; color: #15803d; }
+.stav.keKontrole   { --tecka: #f3a3a3; border-color: #f3a3a3; background: #fdeaea; color: #b91c1c; }
+.stav.vydany       { --tecka: #9cc2ea; border-color: #9cc2ea; background: #e8f1fb; color: #1d4f8c; }
+.stav.reference    { --tecka: #c7b5ec; border-color: #c7b5ec; background: #f2edfb; color: #5b3aa8; }
+.stav.zruseny      { --tecka: #d79a9a; border-color: #d79a9a; background: #f6e3e3; color: #7f1d1d; }
+
+/* Koš = karta se seznamem: nadpis s počtem nahoře, řádky pod ním. */
+.kos {
+  margin-bottom: 24px; padding: 24px 28px 12px;
+  background: var(--plocha); border-radius: 20px; box-shadow: var(--stin-karta);
+}
+.kos h2,
+.kos.sestava h2, .kos.podsestava h2, .kos.dil h2 {
+  padding: 0 0 12px; border: 0; border-radius: 0; background: none;
+  font-size: 20px; font-weight: 600; letter-spacing: -0.01em; text-transform: none; color: var(--text);
+}
+.kos h2 span {
+  border-radius: 999px; background: #eef2f5; padding: 2px 8px;
+  font-size: 12px; font-weight: 600; color: #5d7488;
+}
+.radky { border: 0; border-radius: 0; background: none; }
+.radek, .zahlavi { padding: 14px 12px; }
+.radek { border-bottom: 1px solid var(--line); }
+.radek:last-child { border-bottom: 0; }
+.radek:hover { background: rgba(244, 245, 247, 0.6); }
+.radek.zruseny { background: rgba(246, 227, 227, 0.6); }
+.radek.zruseny:hover { background: #f6e3e3; }
+.radek.reference { background: rgba(242, 237, 251, 0.6); }
+.radek.reference:hover { background: #f2edfb; }
+.radek .cislo { font-size: 14px; }
+.radek .cislo .zbytek { font-weight: 600; }
+.zahlavi {
+  padding: 10px 12px; background: none; border-bottom: 1px solid var(--okraj);
+  font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--text-3);
+}
+
+/* Komentáře a karty */
+.karta { border: 0; border-radius: 20px; box-shadow: var(--stin-karta); padding: 24px; }
+.komentar { border-radius: 12px; border-color: var(--line); }
+.formular input, .formular textarea, .heslo input { border-radius: 10px; border-color: var(--okraj); }
+.formular textarea { border-radius: 12px; }
+
+/* Tlačítka jako v appce */
+.tl { height: 38px; border-radius: 10px; font-weight: 600; }
+.tl.vedlejsi { font-weight: 500; border-color: var(--okraj); }
+
+/* Detail dílu = okno appky */
+.pozadi { background: rgba(11, 20, 32, 0.45); }
+.detail { border: 0; border-radius: 20px; box-shadow: var(--stin-okno); }
+.detail .hlava { padding: 20px 24px; border-bottom-color: var(--line); }
+.detail .hlava .cislo { font-size: 20px; font-weight: 600; }
+.krizek {
+  width: 32px; height: 32px; padding: 0; border-radius: 8px;
+  display: grid; place-items: center; background: var(--bg); font-size: 18px; color: var(--text-2);
+}
+.ramecek { border-color: var(--line); border-radius: 12px; }
+/* Model / Výkres / 3D — segmentový přepínač */
+.prepinac { margin-top: 12px; gap: 2px; border: 0; border-radius: 10px; background: var(--bg); }
+.prepinac button { height: 30px; border-radius: 7px; font-size: 13px; }
+.prepinac button.aktivni { font-weight: 600; box-shadow: 0 1px 2px rgba(15, 30, 45, 0.12); }
+.udaj { padding: 10px 0; border-bottom-color: var(--line); }
+.okoli, .detail .sekce { border-top-color: var(--line); }
+.soused { border-radius: 8px; padding: 6px 8px; }
+.obnovit { border-radius: 8px; }
+
+/* Zmáčknutí jemněji, řádky skoro vůbec — jako v appce */
+.tl:not(:disabled):active, .krizek:active, .prepinac button:active, .zavrit:active, .obnovit:active {
+  transform: scale(0.97);
+}
+@media (max-width: 720px) {
+  .kos { padding: 18px 16px 8px; border-radius: 16px; }
+  .radek { padding: 12px 6px; }
+}
+
 [hidden] { display: none !important; }
 </style>
 </head>
