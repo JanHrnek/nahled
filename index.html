@@ -194,6 +194,15 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 .tl.vedlejsi { background: var(--plocha); color: var(--text); border-color: var(--pole); }
 .tl.vedlejsi:hover:not(:disabled) { background: var(--bg); border-color: var(--pole); }
 .chyba { color: var(--chyba); font-size: 13px; }
+
+/* Heslo — místo přehledu, dokud ho zadavatel nezadá */
+.heslo { display: grid; gap: 10px; justify-items: center; }
+.heslo input {
+  width: 100%; max-width: 280px; border: 1px solid var(--pole); border-radius: 8px;
+  background: var(--plocha); padding: 8px 12px; outline: none; font-size: 15px; text-align: center;
+}
+.heslo input:focus { border-color: var(--akcent); }
+.heslo .chyba { margin: 0; }
 .karta { border: 1px solid var(--okraj); border-radius: 10px; background: var(--plocha); padding: 16px; }
 
 /* ── Detail dílu — karta uprostřed, rozložená jako v appce ── */
@@ -444,6 +453,8 @@ let zobrazeni = "model";  // co ukazuje náhled v detailu
 let chybaFormulare = {};  // podle čísla
 let rozbaleno = {};       // rozbalená historie revizí / starší vydání v detailu
 let stiskNaPozadi = false; // detail zavře jen klik, který na pozadí i začal
+let heslo = ulozeneHeslo(); // heslo sdílení (má-li ho), zapamatované z minula
+let cekaNaHeslo = false;    // na obrazovce je formulář na heslo
 
 // ── Pomocníci ──────────────────────────────────────────────
 
@@ -478,6 +489,17 @@ function jmeno() {
 function zapamatujJmeno(j) {
   try { localStorage.setItem("nahled-jmeno", j); } catch { /* soukromé okno */ }
 }
+// Heslo se pamatuje k odkazu (kódu), ať se nemusí psát pokaždé. Když ho
+// Honza změní, staré přestane platit a stránka se zeptá znovu.
+function ulozeneHeslo() {
+  try { return localStorage.getItem(`nahled-heslo:${kod}`) || ""; } catch { return ""; }
+}
+function zapamatujHeslo(h) {
+  try {
+    if (h) localStorage.setItem(`nahled-heslo:${kod}`, h);
+    else localStorage.removeItem(`nahled-heslo:${kod}`);
+  } catch { /* soukromé okno */ }
+}
 
 async function rpc(funkce, argumenty) {
   const odpoved = await fetch(`${URL_PROJEKTU}/rest/v1/rpc/${funkce}`, {
@@ -498,12 +520,25 @@ async function rpc(funkce, argumenty) {
 
 async function nacti() {
   if (demo) return ukazkovaData();
-  return rpc("nahled", { p_kod: kod });
+  // Heslo jen když nějaké je — sdílení bez hesla ho nepotřebuje.
+  return rpc("nahled", heslo ? { p_kod: kod, p_heslo: heslo } : { p_kod: kod });
 }
 
 async function obnov() {
+  // Při psaní hesla se neobnovuje — formulář by se překreslil pod rukama.
+  if (cekaNaHeslo) return;
   try {
     const novy = await nacti();
+    if (novy?.chceHeslo) {
+      // Bez hesla, se špatným, nebo ho Honza mezitím změnil.
+      nahled = null;
+      zavriDetail();
+      zapamatujHeslo("");
+      heslo = "";
+      zobrazHeslo(novy.spatneHeslo);
+      return;
+    }
+    if (novy && heslo) zapamatujHeslo(heslo);
     if (!novy) {
       nahled = null;
       zavriDetail();
@@ -534,6 +569,30 @@ function komentareK(cislo) {
 function zobrazHlasku(nadpis, text) {
   $("obsah").innerHTML = `<div class="hlaska"><h1>${h(nadpis)}</h1><p>${h(text)}</p></div>`;
   $("paticka").hidden = true;
+}
+
+function zobrazHeslo(spatne) {
+  cekaNaHeslo = true;
+  $("obsah").innerHTML = `
+    <form class="hlaska heslo" id="heslo">
+      <h1>Náhled je chráněný heslem</h1>
+      <input type="password" name="heslo" autocomplete="current-password" aria-label="Heslo" required autofocus>
+      <button class="tl">Otevřít</button>
+      ${spatne ? `<p class="chyba">Heslo nesedí.</p>` : ""}
+    </form>`;
+  $("paticka").hidden = true;
+  $("heslo").heslo.focus();
+}
+
+async function odesliHeslo(formular) {
+  heslo = formular.heslo.value.trim();
+  if (!heslo) return;
+  const tlacitko = formular.querySelector("button");
+  tlacitko.disabled = true;
+  tlacitko.textContent = "Ověřuji…";
+  cekaNaHeslo = false;
+  prvniVykresleni = true;
+  await obnov();
 }
 
 /** Rozepsaný komentář nesmí obnovení dat smazat — ani text, ani kurzor. */
@@ -721,7 +780,9 @@ async function odesliKomentar(formular) {
         odZadavatele: true, vytvoreno: new Date().toISOString(),
       });
     } else {
-      await rpc("pridej_komentar", { p_kod: kod, p_cislo: cislo, p_autor: autor, p_text: text });
+      await rpc("pridej_komentar", {
+        p_kod: kod, p_cislo: cislo, p_autor: autor, p_text: text, ...(heslo ? { p_heslo: heslo } : {}),
+      });
     }
     delete chybaFormulare[cislo];
     formular.text.value = "";
@@ -1162,6 +1223,10 @@ document.addEventListener("pointerdown", (e) => {
 });
 
 document.addEventListener("submit", (e) => {
+  if (e.target.id === "heslo") {
+    e.preventDefault();
+    return odesliHeslo(e.target);
+  }
   if (!e.target.matches(".formular")) return;
   e.preventDefault();
   odesliKomentar(e.target);
