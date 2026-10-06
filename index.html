@@ -583,11 +583,15 @@ function adresaObrazku(cesta) {
   return cesta.startsWith("data:") ? cesta : `${URL_PROJEKTU}/storage/v1/object/public/nahledy/${cesta}`;
 }
 
+// Jméno u komentáře se nepamatuje — pole je vždy prázdné. Na sdíleném
+// počítači by jinak další člověk psal pod cizím jménem. Dřív uložené
+// jméno se při otevření stránky smaže.
+try { localStorage.removeItem("nahled-jmeno"); } catch { /* soukromé okno */ }
 function jmeno() {
-  try { return localStorage.getItem("nahled-jmeno") || ""; } catch { return ""; }
+  return "";
 }
-function zapamatujJmeno(j) {
-  try { localStorage.setItem("nahled-jmeno", j); } catch { /* soukromé okno */ }
+function zapamatujJmeno() {
+  /* záměrně nic — viz výš */
 }
 // Heslo se pamatuje k odkazu (kódu), ať se nemusí psát pokaždé. Když ho
 // Honza změní, staré přestane platit a stránka se zeptá znovu.
