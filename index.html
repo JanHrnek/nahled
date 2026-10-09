@@ -1455,10 +1455,14 @@ function nactiModel3d(adresa) {
 }
 
 async function vytvorProhlizec() {
-  const [THREE, { OrbitControls }] = await Promise.all([
+  const [THREE, { OrbitControls }, { toCreasedNormals }] = await Promise.all([
     import("three"),
     import("three/addons/controls/OrbitControls.js"),
+    import("three/addons/utils/BufferGeometryUtils.js"),
   ]);
+  // Lom: plochy, které spolu svírají víc než tolik, mají ostrou hranu
+  // a obrys; menší zlom (ploška oblouku nebo díry) se vyhladí.
+  const LOM = THREE.MathUtils.degToRad(35);
 
   const obal = document.createElement("div");
   obal.className = "prohlizec3d";
@@ -1487,7 +1491,7 @@ async function vytvorProhlizec() {
   ovladani.dampingFactor = 0.12;
 
   const material = new THREE.MeshStandardMaterial({
-    color: 0xc9d3db, metalness: 0.1, roughness: 0.65, flatShading: true, side: THREE.DoubleSide,
+    color: 0xc9d3db, metalness: 0.1, roughness: 0.6, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
   });
   const materialHran = new THREE.LineBasicMaterial({ color: 0x40566a });
@@ -1543,9 +1547,13 @@ async function vytvorProhlizec() {
       g.setAttribute("position", new THREE.BufferAttribute(model.pozice, 3));
       g.setIndex(new THREE.BufferAttribute(model.indexy, 1));
       g.computeBoundingSphere();
-      sit = new THREE.Mesh(g, material);
+      // Hladké stínování s lomem: oblouky a díry hladké, hrany ostré.
+      const hladka = toCreasedNormals(g, LOM);
+      hladka.computeBoundingSphere();
+      sit = new THREE.Mesh(hladka, material);
       // Obrys jen na ostrých hranách — zaoblení z trojúhelníků zůstanou hladká.
-      hrany = new THREE.LineSegments(new THREE.EdgesGeometry(g, 40), materialHran);
+      hrany = new THREE.LineSegments(new THREE.EdgesGeometry(g, 35), materialHran);
+      g.dispose();
       scena.add(sit, hrany);
 
       // Izometrie jako v SolidWorksu, celý model v záběru.
