@@ -22,8 +22,9 @@
  * Webový náhled projektu pro zadavatele.
  *
  * Jeden soubor bez sestavování: GitHub Pages ho vydá, jak je. Data čte
- * ze Supabase veřejným klíčem, a to jen přes dvě funkce, které chtějí kód
- * z odkazu (supabase/schema.sql). Vzhled drží appku: stejné barvy, stavy
+ * ze Supabase veřejným klíčem, a to jen přes tři funkce, které chtějí kód
+ * z odkazu (supabase/schema.sql). Vydaná PDF nemají adresu — vydá je
+ * funkce stahni_vykres po ověření hesla a stažení zapíše. Vzhled drží appku: stejné barvy, stavy
  * a pořadí sestava → podsestava → díl.
  */
 :root {
@@ -500,12 +501,56 @@ main { padding: 36px 24px 64px; }
 }
 
 [hidden] { display: none !important; }
+
+/* ── Stažení, požadavek na změnu, návod ──────────────────── */
+.lista .navod {
+  margin-left: auto; height: 32px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid var(--okraj); background: var(--plocha); font-size: 13px; color: var(--text-2);
+  transition: background 0.15s, color 0.15s;
+}
+.lista .navod:hover { background: var(--bg); color: var(--text); }
+.stazeni { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.stazeni .tl { display: inline-flex; align-items: center; gap: 8px; }
+.stazeni svg, .obnovit.vse svg { width: 15px; height: 15px; }
+.stazeni .soubor { font-family: var(--mono); font-size: 12px; color: var(--text-3); }
+.stazeni .proc { font-size: 12px; color: var(--text-3); }
+.zamceno, .pozadavek {
+  display: inline-flex; align-items: center; gap: 5px; border: 1px solid #fecaca; border-radius: 999px;
+  background: #fef2f2; color: var(--chyba); padding: 1px 9px; font-size: 11px; font-weight: 500;
+  font-style: normal; white-space: nowrap;
+}
+.zamceno svg { width: 11px; height: 11px; }
+.radek .popis .zamceno { margin-left: 8px; vertical-align: 1px; }
+.pozadavek.vyrizeno { border-color: var(--okraj); background: var(--bg); color: var(--text-2); }
+.formular .zmena { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); cursor: pointer; }
+.formular .zmena input { width: 16px; height: 16px; margin: 0; accent-color: var(--chyba); }
+.okno { max-width: 520px; padding: 24px; }
+.okno h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.okno p, .okno li { font-size: 14px; color: var(--text-2); }
+.okno ul { margin: 12px 0 0; padding-left: 18px; display: grid; gap: 8px; }
+.okno li b { color: var(--text); font-weight: 600; }
+.okno form { display: grid; gap: 10px; margin-top: 14px; }
+.okno input {
+  width: 100%; border: 1px solid var(--pole); border-radius: 8px; background: var(--plocha);
+  padding: 8px 12px; outline: none; font-size: 15px;
+}
+.okno input:focus { border-color: var(--akcent); }
+.okno .tlacitka { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.oznameni {
+  position: fixed; left: 50%; bottom: 24px; z-index: 30; transform: translateX(-50%);
+  max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 10px;
+  background: var(--akcent); color: var(--na-akcentu); font-size: 14px; box-shadow: var(--stin);
+  animation: popIn 0.3s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+.oznameni.chyba { background: var(--chyba); color: #fff; }
+.oznameni.zavira { animation: popOut 0.25s ease-in both; }
 </style>
 </head>
 <body>
 <div class="lista">
   <div class="znacka" aria-hidden="true">JH</div>
   <div class="co"><b>Jan Hrnek</b> · náhled projektu</div>
+  <button class="navod" data-navod>Jak to funguje</button>
 </div>
 <main id="obsah"><p class="hlaska">Načítám…</p></main>
 <footer id="paticka" hidden>
@@ -516,15 +561,20 @@ main { padding: 36px 24px 64px; }
   <aside id="detail" class="detail" aria-modal="true" role="dialog"></aside>
 </div>
 <div id="lupa" class="lupa" hidden></div>
+<div id="okno" class="pozadi" hidden>
+  <div class="detail okno" role="dialog" aria-modal="true"></div>
+</div>
 
 <script>
 "use strict";
 
 // Veřejné údaje projektu v Supabase — k tabulkám se s nimi nikdo nedostane,
-// jen ke dvěma funkcím, které chtějí kód z odkazu.
+// jen ke třem funkcím, které chtějí kód z odkazu.
 const URL_PROJEKTU = "https://krjklzhmjfrobxirgfss.supabase.co";
 const KLIC = "sb_publishable_kELuD5fKHK50JOYhleZWkw_WM_jgPhw";
 const OBNOVA_MS = 60_000;
+// Balení výkresů do ZIPu — stahuje se až při „Stáhnout vše".
+const JSZIP = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
 
 const NAZVY_STAVU = {
   rozpracovany: "Rozpracovaný",
@@ -553,6 +603,8 @@ let zobrazeni = "model";  // co ukazuje náhled v detailu
 let chybaFormulare = {};  // podle čísla
 let rozbaleno = {};       // rozbalená historie revizí / starší vydání v detailu
 let stiskNaPozadi = false; // detail zavře jen klik, který na pozadí i začal
+const PLATNOST_HESLA_MS = 2 * 60 * 60 * 1000; // jak dlouho platí přihlášení
+let hesloPlatiDo = 0;       // do kdy platí zapamatované heslo (ms)
 let heslo = ulozeneHeslo(); // heslo sdílení (má-li ho), zapamatované z minula
 let cekaNaHeslo = false;    // na obrazovce je formulář na heslo
 
@@ -583,26 +635,61 @@ function adresaObrazku(cesta) {
   return cesta.startsWith("data:") ? cesta : `${URL_PROJEKTU}/storage/v1/object/public/nahledy/${cesta}`;
 }
 
-// Jméno u komentáře se nepamatuje — pole je vždy prázdné. Na sdíleném
-// počítači by jinak další člověk psal pod cizím jménem. Dřív uložené
-// jméno se při otevření stránky smaže.
+// Jméno zadavatele se zadá při přihlášení (nebo při prvním stažení)
+// a zapíše se ke každému stažení; u komentáře se jen nabídne. Je to jen
+// údaj pro záznam, nic nechrání — chrání kód z odkazu a heslo.
+// Pamatuje se jen po dobu otevřené záložky (sessionStorage), ne natrvalo:
+// na sdíleném počítači by jinak další člověk stahoval a psal pod cizím
+// jménem. Dřív natrvalo uložené jméno se při otevření stránky smaže.
 try { localStorage.removeItem("nahled-jmeno"); } catch { /* soukromé okno */ }
+let jmenoZadavatele = (() => {
+  try { return sessionStorage.getItem(`nahled-jmeno:${kod}`) || ""; } catch { return ""; }
+})();
 function jmeno() {
+  return jmenoZadavatele;
+}
+function zapamatujJmeno(j) {
+  jmenoZadavatele = String(j || "").trim().slice(0, 80);
+  try { sessionStorage.setItem(`nahled-jmeno:${kod}`, jmenoZadavatele); } catch { /* soukromé okno */ }
+}
+// Heslo se pamatuje k odkazu (kódu), ale jen PLATNOST_HESLA_MS od zadání —
+// pak se stránka zeptá znovu, i když je zrovna otevřená. Obnovování
+// stránky platnost neprodlužuje. Když Honza heslo změní, staré přestane
+// platit hned. Heslo uložené dřív bez data platnosti se bere jako propadlé.
+function ulozeneHeslo() {
+  try {
+    const z = JSON.parse(localStorage.getItem(`nahled-heslo:${kod}`) || "null");
+    if (z && typeof z.heslo === "string" && Date.now() < z.do) {
+      hesloPlatiDo = z.do;
+      return z.heslo;
+    }
+  } catch { /* starý zápis bez platnosti, nebo soukromé okno */ }
+  try { localStorage.removeItem(`nahled-heslo:${kod}`); } catch { /* soukromé okno */ }
   return "";
 }
-function zapamatujJmeno() {
-  /* záměrně nic — viz výš */
-}
-// Heslo se pamatuje k odkazu (kódu), ať se nemusí psát pokaždé. Když ho
-// Honza změní, staré přestane platit a stránka se zeptá znovu.
-function ulozeneHeslo() {
-  try { return localStorage.getItem(`nahled-heslo:${kod}`) || ""; } catch { return ""; }
-}
 function zapamatujHeslo(h) {
+  if (!h) {
+    hesloPlatiDo = 0;
+    try { localStorage.removeItem(`nahled-heslo:${kod}`); } catch { /* soukromé okno */ }
+    return;
+  }
+  if (hesloPlatiDo && Date.now() < hesloPlatiDo) return; // běžící přihlášení se neprodlužuje
+  hesloPlatiDo = Date.now() + PLATNOST_HESLA_MS;
   try {
-    if (h) localStorage.setItem(`nahled-heslo:${kod}`, h);
-    else localStorage.removeItem(`nahled-heslo:${kod}`);
+    localStorage.setItem(`nahled-heslo:${kod}`, JSON.stringify({ heslo: h, do: hesloPlatiDo }));
   } catch { /* soukromé okno */ }
+}
+/** Propadlo přihlášení? Pak pryč heslo i jméno a znovu formulář. */
+function prihlaseniPropadlo() {
+  if (!heslo || !hesloPlatiDo || Date.now() < hesloPlatiDo) return false;
+  heslo = "";
+  zapamatujHeslo("");
+  zapamatujJmeno("");
+  nahled = null;
+  zavriDetail();
+  zavriOkno();
+  zobrazHeslo(false);
+  return true;
 }
 
 async function rpc(funkce, argumenty) {
@@ -631,6 +718,7 @@ async function nacti() {
 async function obnov() {
   // Při psaní hesla se neobnovuje — formulář by se překreslil pod rukama.
   if (cekaNaHeslo) return;
+  if (prihlaseniPropadlo()) return;
   try {
     const novy = await nacti();
     if (novy?.chceHeslo) {
@@ -668,6 +756,17 @@ function komentareK(cislo) {
   return (nahled?.komentare ?? []).filter((k) => (k.cislo || "") === cislo);
 }
 
+/** Čeká díl na novou revizi? Nevyřízený požadavek na změnu zamkne stažení. */
+function zamceno(cislo) {
+  return (nahled?.komentare ?? []).some((k) => k.cislo === cislo && k.pozadujeZmenu && !k.vyrizeno);
+}
+
+/** PDF ke stažení, je-li stahování povolené a appka ho nahrála. */
+function vykresK(cislo) {
+  if (!nahled?.povolitStazeni) return null;
+  return (nahled.vykresy ?? []).find((v) => v.cislo === cislo) || null;
+}
+
 // ── Přehled ────────────────────────────────────────────────
 
 function zobrazHlasku(nadpis, text) {
@@ -680,17 +779,21 @@ function zobrazHeslo(spatne) {
   $("obsah").innerHTML = `
     <form class="hlaska heslo" id="heslo">
       <h1>Náhled je chráněný heslem</h1>
-      <input type="password" name="heslo" autocomplete="current-password" aria-label="Heslo" required autofocus>
+      <input name="jmeno" autocomplete="name" maxlength="80" placeholder="Vaše jméno" aria-label="Vaše jméno"
+        required value="${h(jmeno())}">
+      <input type="password" name="heslo" autocomplete="current-password" placeholder="Heslo" aria-label="Heslo" required>
       <button class="tl">Otevřít</button>
       ${spatne ? `<p class="chyba">Heslo nesedí.</p>` : ""}
     </form>`;
   $("paticka").hidden = true;
-  $("heslo").heslo.focus();
+  const formular = $("heslo");
+  (formular.jmeno.value ? formular.heslo : formular.jmeno).focus();
 }
 
 async function odesliHeslo(formular) {
   heslo = formular.heslo.value.trim();
-  if (!heslo) return;
+  if (!heslo || !formular.jmeno.value.trim()) return;
+  zapamatujJmeno(formular.jmeno.value);
   const tlacitko = formular.querySelector("button");
   tlacitko.disabled = true;
   tlacitko.textContent = "Ověřuji…";
@@ -704,10 +807,13 @@ function zachovejRozepsane(kde, prekresli) {
   const pred = document.querySelector(`${kde} textarea`);
   const text = pred?.value ?? "";
   const fokus = pred !== null && document.activeElement === pred;
+  const zmena = document.querySelector(`${kde} .zmena input`)?.checked ?? false;
   prekresli();
   const po = document.querySelector(`${kde} textarea`);
   if (po && text) po.value = text;
   if (po && fokus) po.focus();
+  const zmenaPo = document.querySelector(`${kde} .zmena input`);
+  if (zmenaPo) zmenaPo.checked = zmena;
 }
 
 function vykresli() {
@@ -756,6 +862,10 @@ function vykresliPrehled() {
         · aktualizováno ${kdy(nahled.aktualizovano)}
         <button class="obnovit${nacitam ? " toci" : ""}" data-obnovit
           title="Načíst znovu — jinak se stránka obnovuje sama každou minutu">${sipkaObnovit}Obnovit</button>
+        ${nahled.povolitStazeni && (nahled.vykresy ?? []).length
+          ? `<button class="obnovit vse" data-stahni-vse
+              title="Všechny vydané výkresy (aktuální revize) jako ZIP">${IKONA_STAZENI}Stáhnout vše</button>`
+          : ""}
       </div>
     </section>
     <div class="souhrn${anim ? " anim-fade" : ""}">${souhrn}</div>
@@ -797,6 +907,10 @@ function cislo(text) {
   return `<span class="predpona">${h(text.slice(0, i + 1))}</span><span class="zbytek">${h(text.slice(i + 1))}</span>`;
 }
 
+const IKONA_STAZENI = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>`;
+const IKONA_ZAMKU = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const IKONA_KOMENTARE = `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v6a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.5V11h-.5A1.5 1.5 0 0 1 2 9.5z"/></svg>`;
 
 function radek(p, zpozdeniMs = null) {
@@ -820,6 +934,8 @@ function radek(p, zpozdeniMs = null) {
       <span class="cislo">${cislo(p.cislo)}</span>
       <span class="popis${p.popis ? "" : " prazdny"}" title="${h(p.popis)}">${h(p.popis) || "bez popisu"}${
         pocet ? `<span class="bublina" title="${pocet} ${sklonuj(pocet, "komentář", "komentáře", "komentářů")}">${IKONA_KOMENTARE}${pocet}</span>` : ""
+      }${
+        zamceno(p.cislo) ? `<span class="zamceno" title="Požadovaná změna — čeká na novou revizi">${IKONA_ZAMKU}čeká na revizi</span>` : ""
       }</span>
       <span class="material" title="${h(p.material)}">${h(p.material) || "—"}</span>
       <span class="rev-bunka">${revize(p)}</span>
@@ -848,6 +964,11 @@ function komentareHtml(cislo, nadpis) {
         <li class="komentar${k.odZadavatele ? "" : " od-autora"}">
           <div class="hlavicka">
             <span class="autor">${h(k.autor)}</span>
+            ${k.pozadujeZmenu
+              ? k.vyrizeno
+                ? `<span class="pozadavek vyrizeno">${k.vyrizeni === "zamitnuto" ? "Požadavek zamítnut" : "Vyřízeno novou revizí"}</span>`
+                : `<span class="pozadavek">Požaduje změnu · čeká na novou revizi</span>`
+              : ""}
             <span class="cas">${kdyKratce(k.vytvoreno)}</span>
           </div>
           <div class="text">${h(k.text)}</div>
@@ -860,6 +981,10 @@ function komentareHtml(cislo, nadpis) {
     <form class="formular" data-cislo="${h(cislo)}">
       <textarea name="text" maxlength="4000" required
         placeholder="${cislo ? `Poznámka k ${h(cislo)}` : "Poznámka k celému projektu"}"></textarea>
+      ${cislo
+        ? `<label class="zmena"><input type="checkbox" name="zmena">
+            Požaduji změnu výkresu — stažení dílu se pozastaví do nové revize</label>`
+        : ""}
       <div class="dole">
         <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
         <button class="tl" type="submit">Odeslat komentář</button>
@@ -872,6 +997,7 @@ async function odesliKomentar(formular) {
   const cislo = formular.dataset.cislo || "";
   const text = formular.text.value.trim();
   const autor = formular.autor.value.trim();
+  const pozadujeZmenu = Boolean(formular.zmena?.checked);
   if (!text || !autor) return;
   zapamatujJmeno(autor);
   const tlacitko = formular.querySelector("button");
@@ -882,10 +1008,13 @@ async function odesliKomentar(formular) {
       nahled.komentare.push({
         id: String(Date.now()), cislo, autor, text,
         odZadavatele: true, vytvoreno: new Date().toISOString(),
+        pozadujeZmenu: pozadujeZmenu && cislo !== "", vyrizeno: null,
       });
     } else {
       await rpc("pridej_komentar", {
-        p_kod: kod, p_cislo: cislo, p_autor: autor, p_text: text, ...(heslo ? { p_heslo: heslo } : {}),
+        p_kod: kod, p_cislo: cislo, p_autor: autor, p_text: text,
+        ...(heslo ? { p_heslo: heslo } : {}),
+        ...(pozadujeZmenu ? { p_pozaduje_zmenu: true } : {}),
       });
     }
     delete chybaFormulare[cislo];
@@ -1058,6 +1187,7 @@ function vykresliObsahDetailu() {
           <button data-zobrazeni="vykres" class="${zobrazeni === "vykres" ? "aktivni" : ""}${nahledy.vykres ? "" : " chybi"}">Výkres</button>
           ${nahledy.model3d ? `<button data-zobrazeni="3d" class="${zobrazeni === "3d" ? "aktivni" : ""}">3D</button>` : ""}
         </div>
+        ${stazeniHtml(p)}
       </div>
       <dl class="udaje">${udaje}</dl>
     </div>
@@ -1070,6 +1200,198 @@ function vykresliObsahDetailu() {
   animujNahled = false;
   $("pozadi").hidden = false;
   document.body.style.overflow = "hidden";
+}
+
+/** Tlačítko na stažení vydaného PDF — nebo proč teď nejde. */
+function stazeniHtml(p) {
+  if (!nahled?.povolitStazeni) return "";
+  if (zamceno(p.cislo)) {
+    return `<div class="stazeni anim-fade">
+      <span class="zamceno">${IKONA_ZAMKU}Čeká na novou revizi</span>
+      <span class="proc">Stažení je pozastavené kvůli požadované změně.</span>
+    </div>`;
+  }
+  const v = vykresK(p.cislo);
+  if (!v) return "";
+  return `<div class="stazeni anim-fade">
+    <button class="tl" data-stahni="${h(p.cislo)}" title="Aktuální vydaná revize, bez vodoznaku">${IKONA_STAZENI}Stáhnout PDF</button>
+    <span class="soubor">${h(v.soubor)}</span>
+  </div>`;
+}
+
+// ── Stažení ────────────────────────────────────────────────
+
+/** Stáhne PDF dílu přes funkci stahni_vykres (heslo se ověří znovu). */
+async function stahniPdf(cislo, kdo) {
+  if (demo) throw new Error("V ukázce se nic nestahuje.");
+  const r = await rpc("stahni_vykres", {
+    p_kod: kod, p_cislo: cislo, p_kdo: kdo, ...(heslo ? { p_heslo: heslo } : {}),
+  });
+  const bin = atob(r.pdf);
+  const data = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+  return { soubor: r.soubor, data };
+}
+
+function ulozSoubor(blob, jmenoSouboru) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = jmenoSouboru;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 20_000);
+}
+
+async function stahniVykres(cislo, tlacitko) {
+  const kdo = await zjistiJmeno();
+  if (!kdo) return;
+  const puvodni = tlacitko.innerHTML;
+  tlacitko.disabled = true;
+  tlacitko.textContent = "Stahuji…";
+  try {
+    const { soubor, data } = await stahniPdf(cislo, kdo);
+    ulozSoubor(new Blob([data], { type: "application/pdf" }), soubor);
+  } catch (e) {
+    oznam(e.message, true);
+    obnov();
+  } finally {
+    tlacitko.disabled = false;
+    tlacitko.innerHTML = puvodni;
+  }
+}
+
+function nactiJsZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise((hotovo, chyba) => {
+    const skript = document.createElement("script");
+    skript.src = JSZIP;
+    skript.onload = () => hotovo(window.JSZip);
+    skript.onerror = () => chyba(new Error("Balení do ZIPu se nepodařilo načíst. Zkuste to znovu."));
+    document.head.append(skript);
+  });
+}
+
+/** Všechna dostupná PDF jako ZIP. Každé se stahuje (a zapíše) zvlášť. */
+async function stahniVse(tlacitko) {
+  const kdo = await zjistiJmeno();
+  if (!kdo) return;
+  const vse = nahled?.vykresy ?? [];
+  const seznam = vse.filter((v) => !zamceno(v.cislo));
+  if (!seznam.length) return oznam("Teď nejde stáhnout žádný výkres — všechny čekají na novou revizi.", true);
+  const puvodni = tlacitko.innerHTML;
+  tlacitko.disabled = true;
+  try {
+    const JSZip = await nactiJsZip();
+    const zip = new JSZip();
+    for (const [i, v] of seznam.entries()) {
+      tlacitko.textContent = `Stahuji ${i + 1}/${seznam.length}…`;
+      const { soubor, data } = await stahniPdf(v.cislo, kdo);
+      zip.file(soubor, data);
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    const dnes = new Date().toISOString().slice(0, 10);
+    ulozSoubor(blob, `${nahled.projekt} výkresy ${dnes}.zip`);
+    const vynechano = vse.length - seznam.length;
+    if (vynechano) {
+      oznam(`${vynechano} ${sklonuj(vynechano, "výkres čeká", "výkresy čekají", "výkresů čeká")} na novou revizi — v ZIPu nejsou.`);
+    }
+  } catch (e) {
+    oznam(e.message, true);
+    obnov();
+  } finally {
+    tlacitko.disabled = false;
+    tlacitko.innerHTML = puvodni;
+  }
+}
+
+// ── Okno (jméno, návod) a oznámení ─────────────────────────
+
+let casovacOkna = 0;
+let cekaNaJmeno = null; // vyřízení slibu z zjistiJmeno
+
+function otevriOkno(html) {
+  const okno = $("okno");
+  okno.querySelector(".okno").innerHTML = html;
+  clearTimeout(casovacOkna);
+  okno.classList.remove("zavira", "otvira");
+  okno.hidden = false;
+  void okno.offsetWidth;
+  okno.classList.add("otvira");
+}
+
+function zavriOkno() {
+  const okno = $("okno");
+  if (okno.hidden) return;
+  if (cekaNaJmeno) {
+    cekaNaJmeno(null);
+    cekaNaJmeno = null;
+  }
+  okno.classList.remove("otvira");
+  okno.classList.add("zavira");
+  clearTimeout(casovacOkna);
+  casovacOkna = setTimeout(() => {
+    okno.hidden = true;
+    okno.classList.remove("zavira");
+  }, 280);
+}
+
+/** Jméno pro záznam o stažení — zadané při přihlášení, jinak se zeptá. */
+function zjistiJmeno() {
+  if (jmeno()) return Promise.resolve(jmeno());
+  otevriOkno(`
+    <h2>Kdo stahuje?</h2>
+    <p>Jméno se zapíše ke stažení výkresu.</p>
+    <form id="form-jmeno">
+      <input name="jmeno" autocomplete="name" maxlength="80" placeholder="Vaše jméno" aria-label="Vaše jméno" required>
+      <div class="tlacitka">
+        <button type="button" class="tl vedlejsi" data-zavrit-okno>Zrušit</button>
+        <button class="tl">Pokračovat</button>
+      </div>
+    </form>`);
+  $("form-jmeno").jmeno.focus();
+  return new Promise((hotovo) => { cekaNaJmeno = hotovo; });
+}
+
+function otevriNavod() {
+  const stazeni = nahled?.povolitStazeni;
+  otevriOkno(`
+    <h2>Jak to funguje</h2>
+    <p>Tady vidíte průběžný stav konstrukce projektu — jen to, co je vydané.
+      Rozpracované změny se objeví, až je vydám.</p>
+    <ul>
+      <li><b>Přehled</b> — sestavy a díly s revizí a stavem. Kliknutím na řádek
+        se otevře detail s obrázkem modelu, výkresem a 3D modelem k otáčení.</li>
+      <li><b>Náhledy</b> mají vodoznak a slouží jen pro orientaci, nejsou platné pro výrobu.</li>
+      ${stazeni
+        ? `<li><b>Stažení výkresu</b> — v detailu dílu tlačítko Stáhnout PDF stáhne aktuální
+            vydanou revizi. Stáhnout vše nahoře stáhne všechny výkresy najednou jako ZIP.
+            Každé stažení se zaznamená (jméno a čas).</li>`
+        : ""}
+      <li><b>Komentáře</b> — k dílu v jeho detailu, k celému projektu dole na stránce.
+        Odpověď uvidíte na stejném místě.</li>
+      <li><b>Požaduji změnu</b> — zaškrtněte u komentáře k dílu, když je potřeba výkres upravit.
+        ${stazeni ? "Stažení dílu se pozastaví, dokud nevyjde nová revize." : "Díl se mi označí ke kontrole."}</li>
+      <li>Klidně mi pište i e-mailem.</li>
+    </ul>
+    <div class="tlacitka" style="margin-top:18px">
+      <button class="tl" data-zavrit-okno>Rozumím</button>
+    </div>`);
+}
+
+let casovacOznameni = 0;
+function oznam(text, chyba = false) {
+  document.querySelector(".oznameni")?.remove();
+  const el = document.createElement("div");
+  el.className = `oznameni${chyba ? " chyba" : ""}`;
+  el.setAttribute("role", "status");
+  el.textContent = text;
+  document.body.append(el);
+  clearTimeout(casovacOznameni);
+  casovacOznameni = setTimeout(() => {
+    el.classList.add("zavira");
+    setTimeout(() => el.remove(), 260);
+  }, 5000);
 }
 
 function otevriLupu(adresa) {
@@ -1295,13 +1617,18 @@ document.addEventListener("click", (e) => {
   // Klik vedle karty (na ztmavené pozadí) detail zavře — jen když tam
   // i začal, ne když otáčení 3D modelu skončí kurzorem mimo kartu.
   if (e.target === $("pozadi")) return stiskNaPozadi ? zavriDetail() : undefined;
+  if (e.target === $("okno")) return zavriOkno();
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-stahni], [data-stahni-vse]"
   );
   if (!cil || cil.matches("form")) return;
   if (cil.matches("#lupa img")) return $("lupa").classList.toggle("plna");
   if (cil.matches("[data-zavrit-lupu]")) return zavriLupu();
   if (cil.matches("[data-obnovit]")) return obnovRucne();
+  if (cil.matches("[data-navod]")) return otevriNavod();
+  if (cil.matches("[data-zavrit-okno]")) return zavriOkno();
+  if (cil.matches("[data-stahni]")) return stahniVykres(cil.dataset.stahni, cil);
+  if (cil.matches("[data-stahni-vse]")) return stahniVse(cil);
   if (cil.matches("[data-lupa3d]")) return otevriLupu3d();
   if (cil.matches("[data-lupa]")) return otevriLupu(cil.dataset.lupa);
   if (cil.matches("[data-zavrit]")) return zavriDetail();
@@ -1331,6 +1658,17 @@ document.addEventListener("submit", (e) => {
     e.preventDefault();
     return odesliHeslo(e.target);
   }
+  if (e.target.id === "form-jmeno") {
+    e.preventDefault();
+    const j = e.target.jmeno.value.trim();
+    if (!j) return;
+    zapamatujJmeno(j);
+    const hotovo = cekaNaJmeno;
+    cekaNaJmeno = null;
+    zavriOkno();
+    hotovo?.(j);
+    return;
+  }
   if (!e.target.matches(".formular")) return;
   e.preventDefault();
   odesliKomentar(e.target);
@@ -1338,7 +1676,8 @@ document.addEventListener("submit", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  if (!$("lupa").hidden) zavriLupu();
+  if (!$("okno").hidden) zavriOkno();
+  else if (!$("lupa").hidden) zavriLupu();
   else if (otevrene) zavriDetail();
 });
 
@@ -1390,6 +1729,12 @@ function ukazkovaData() {
     projekt: "H2600",
     nazev: "Ukázkový projekt",
     aktualizovano: new Date().toISOString(),
+    povolitStazeni: true,
+    vykresy: [
+      { cislo: "S-0001", revize: "", soubor: "S-0001.pdf" },
+      { cislo: "D-0001", revize: "", soubor: "D-0001.pdf" },
+      { cislo: "D-0002", revize: "A", soubor: "D-0002_A.pdf" },
+    ],
     data: {
       verze: 1,
       zdroj: "solidworks",
@@ -1415,7 +1760,7 @@ function ukazkovaData() {
       ],
     },
     komentare: [
-      { id: "1", cislo: "D-0002", autor: "Ing. Vedoucí", text: "Proč zkrácení o 20 mm? Nekoliduje to s podpěrou?", odZadavatele: true, vytvoreno: "2026-09-29T15:02:00Z" },
+      { id: "1", cislo: "D-0002", autor: "Ing. Vedoucí", text: "Proč zkrácení o 20 mm? Nekoliduje to s podpěrou?", odZadavatele: true, vytvoreno: "2026-09-29T15:02:00Z", pozadujeZmenu: true, vyrizeno: null },
       { id: "2", cislo: "D-0002", autor: "Jan Hrnek", text: "Nekoliduje, podpěra se posunula taky (S-0001).", odZadavatele: false, vytvoreno: "2026-09-29T16:40:00Z" },
       { id: "3", cislo: "", autor: "Ing. Vedoucí", text: "Celkově dobré, rám prosím do pátku ke kontrole.", odZadavatele: true, vytvoreno: "2026-09-28T09:15:00Z" },
     ],
