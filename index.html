@@ -741,6 +741,15 @@ async function obnov() {
       );
       return;
     }
+    // Požadavky, které vyřídila nová revize, posílá appka spolu s přehledem
+    // — zámek tak zmizí naráz s novým stavem, ne až s dalším obnovením.
+    const vyrizene = new Set(novy.data?.vyrizenePozadavky ?? []);
+    for (const k of novy.komentare ?? []) {
+      if (!k.vyrizeno && vyrizene.has(k.id)) {
+        k.vyrizeno = novy.aktualizovano;
+        k.vyrizeni = "revize";
+      }
+    }
     nahled = novy;
     vykresli();
   } catch (e) {
@@ -1208,7 +1217,7 @@ function vykresliObsahDetailu() {
     <div class="sekce komentare">${komentareHtml(p.cislo, "Komentáře")}</div>`;
 
   const misto = $("detail").querySelector("[data-misto3d]");
-  if (misto) vlozProhlizec(misto, adresaObrazku(nahledy.model3d));
+  if (misto) vlozProhlizec(misto, adresaObrazku(nahledy.model3d), vodoznakDilu(p));
 
   animujNahled = false;
   $("pozadi").hidden = false;
@@ -1481,7 +1490,7 @@ async function vytvorProhlizec() {
   obal.className = "prohlizec3d";
   obal.innerHTML = `
     <p class="stav3d"></p>
-    <div class="vodoznak3d" aria-hidden="true"><span>NÁHLED — NEPLATNÝ PRO VÝROBU</span></div>
+    <div class="vodoznak3d" aria-hidden="true"><span>NÁHLED</span></div>
     <p class="napoveda3d">Tažením otočíte, kolečkem přiblížíte</p>
     <button class="zvetsit3d" data-lupa3d>Zvětšit</button>`;
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -1582,7 +1591,15 @@ async function vytvorProhlizec() {
   };
 }
 
-async function vlozProhlizec(misto, adresa) {
+/** Text vodoznaku 3D — stejný jako na obrázcích, které vodoznačí appka:
+ *  „NÁHLED · REV. A · datum vydání" (originál „NÁHLED · ORIGINÁL · …"). */
+function vodoznakDilu(p) {
+  const vydani = p.vydani || [];
+  const v = vydani.find((v) => v.revize === p.revize) || vydani[0];
+  return `NÁHLED · ${p.revize ? `REV. ${p.revize}` : "ORIGINÁL"}${v?.kdy ? ` · ${v.kdy}` : ""}`;
+}
+
+async function vlozProhlizec(misto, adresa, vodoznak) {
   if (lupa3d) {
     misto.innerHTML = `<p class="nic" style="position:absolute;inset:0;display:grid;place-items:center">3D je otevřené ve zvětšení.</p>`;
     return;
@@ -1599,6 +1616,7 @@ async function vlozProhlizec(misto, adresa) {
   }
   if (tah !== tah3d || !misto.isConnected) return;
   misto.replaceChildren(p.obal);
+  if (vodoznak) p.obal.querySelector(".vodoznak3d span").textContent = vodoznak;
   p.spust();
   if (p.adresa === adresa) return;
 
