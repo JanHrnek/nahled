@@ -761,6 +761,13 @@ function zamceno(cislo) {
   return (nahled?.komentare ?? []).some((k) => k.cislo === cislo && k.pozadujeZmenu && !k.vyrizeno);
 }
 
+/** Stav k zobrazení. Vydaný díl s nevyřízeným požadavkem na změnu je
+ *  „ke kontrole" hned — appka to přepne taky, ale až v dalším kole. */
+function stavDilu(p) {
+  if (zamceno(p.cislo) && (p.stav === "vydany" || p.stav === "hotovy")) return "keKontrole";
+  return p.stav;
+}
+
 /** PDF ke stažení, je-li stahování povolené a appka ho nahrála. */
 function vykresK(cislo) {
   if (!nahled?.povolitStazeni) return null;
@@ -826,7 +833,7 @@ function vykresliPrehled() {
   document.title = `${nahled.projekt} ${nahled.nazev || ""} — náhled`.trim();
 
   const pocty = {};
-  for (const p of vse) pocty[p.stav] = (pocty[p.stav] || 0) + 1;
+  for (const p of vse) pocty[stavDilu(p)] = (pocty[stavDilu(p)] || 0) + 1;
   const souhrn = Object.keys(NAZVY_STAVU)
     .filter((s) => pocty[s])
     .map((s) => `<span class="stav ${s}">${NAZVY_STAVU[s]} <span class="pocet">${pocty[s]}</span></span>`)
@@ -939,7 +946,7 @@ function radek(p, zpozdeniMs = null) {
       }</span>
       <span class="material" title="${h(p.material)}">${h(p.material) || "—"}</span>
       <span class="rev-bunka">${revize(p)}</span>
-      <span class="stav-bunka">${stitek(p.stav)}</span>
+      <span class="stav-bunka">${stitek(stavDilu(p))}</span>
       <span class="sipka">›</span>
     </button>`;
 }
@@ -1134,7 +1141,7 @@ function vykresliObsahDetailu() {
       + (p.vydano ? "" : `<div class="varovani">Aktuální revize ${h(p.revize) || "(originál)"} ještě vydaná není.</div>`);
 
   const udaje = [
-    udaj("Stav", stitek(p.stav, true)),
+    udaj("Stav", stitek(stavDilu(p), true)),
     udaj("Typ", h(NAZVY_TYPU[p.typ] || p.typ) || nic),
     udaj("Materiál", h(p.material) || nic),
     udaj("Rozměr", p.rozmer ? `${h(p.rozmer)} mm` : nic),
