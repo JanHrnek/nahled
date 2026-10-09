@@ -284,6 +284,7 @@ dl.udaje { flex: 1; min-width: 0; margin: 0; font-size: 14px; }
 .historie-tl svg { width: 12px; height: 12px; vertical-align: -1px; transition: transform 0.3s; }
 .historie-tl.otevreno svg { transform: rotate(180deg); }
 .radek-udaje { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; }
+.radek-udaje .poznamka-revize { margin: 0 4px 0 6px; color: var(--text-2); overflow-wrap: anywhere; }
 .denik li { font-size: 13px; }
 .denik .poznamka { color: var(--text-2); }
 .okoli { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px 24px; border-top: 1px solid var(--okraj); }
@@ -761,10 +762,15 @@ function zamceno(cislo) {
   return (nahled?.komentare ?? []).some((k) => k.cislo === cislo && k.pozadujeZmenu && !k.vyrizeno);
 }
 
-/** Stav k zobrazení. Vydaný díl s nevyřízeným požadavkem na změnu je
- *  „ke kontrole" hned — appka to přepne taky, ale až v dalším kole. */
+/** Stav k zobrazení. Stav určuje appka; web ho jen předběhne: požadavek
+ *  na změnu, který appka ještě neviděla (přišel po jejím posledním zápisu),
+ *  ukáže vydaný díl hned jako „ke kontrole". Jakmile appka data pošle,
+ *  platí zase její stav — i když ho Honza přepne jinam. */
 function stavDilu(p) {
-  if (zamceno(p.cislo) && (p.stav === "vydany" || p.stav === "hotovy")) return "keKontrole";
+  const posledniZapis = new Date(nahled?.aktualizovano || 0);
+  const novyPozadavek = (nahled?.komentare ?? []).some((k) =>
+    k.cislo === p.cislo && k.pozadujeZmenu && !k.vyrizeno && new Date(k.vytvoreno) > posledniZapis);
+  if (novyPozadavek && (p.stav === "vydany" || p.stav === "hotovy")) return "keKontrole";
   return p.stav;
 }
 
@@ -1118,6 +1124,7 @@ function vykresliObsahDetailu() {
   const historie = vsechnyRevize.length && vsechnyRevize[0].revize === p.revize
     ? vsechnyRevize.slice(1) : vsechnyRevize;
   const revize = `<div class="radek-udaje"><b>${h(p.revize) || "originál"}</b>`
+    + (p.poznamkaRevize ? `<span class="poznamka-revize">${h(p.poznamkaRevize)}</span>` : "")
     + (historie.length ? tlacitko("historie", `historie (${historie.length})`) : "")
     + `</div>`
     + (historie.length
@@ -1147,7 +1154,6 @@ function vykresliObsahDetailu() {
     udaj("Rozměr", p.rozmer ? `${h(p.rozmer)} mm` : nic),
     udaj("Revize", revize),
     udaj("Vydáno", vydano),
-    udaj("Co se změnilo", h(p.poznamkaRevize) || nic, "vice-radku"),
     udaj("Vytvořeno", h(p.vytvoreno) || nic),
   ].join("");
 
