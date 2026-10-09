@@ -166,6 +166,11 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
   margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--text);
 }
 .komentare h3 span { font-size: 13px; font-weight: 400; color: var(--text-3); }
+.komentare h3 .razeni-tl {
+  margin-left: auto; border: 0; background: none; border-radius: 4px; padding: 2px 6px;
+  font-size: 12px; font-weight: 400; color: var(--text-2); transition: background-color 0.2s, color 0.2s;
+}
+.komentare h3 .razeni-tl:hover { background: var(--bg); color: var(--text); }
 .komentare ul { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 12px; }
 /* Každý komentář velký obdélník: autor vlevo, datum a čas vpravo, text
    pod tím — stejně jako v appce. Odpovědi autora jemně tónované. */
@@ -979,8 +984,24 @@ function kdyKratce(iso) {
   });
 }
 
+/** Řazení komentářů — výchozí od nejnovějšího. Volba se pamatuje
+ *  v prohlížeči (jen pohodlí, bez ní platí výchozí). */
+let nejnovejsiNahore = (() => {
+  try { return localStorage.getItem("nahled-razeni") !== "nejstarsi"; } catch { return true; }
+})();
+function prepniRazeni() {
+  nejnovejsiNahore = !nejnovejsiNahore;
+  try { localStorage.setItem("nahled-razeni", nejnovejsiNahore ? "nejnovejsi" : "nejstarsi"); } catch { /* soukromé okno */ }
+  vykresli();
+}
+
 function komentareHtml(cislo, nadpis) {
-  const seznam = komentareK(cislo);
+  // Z cloudu chodí od nejstaršího.
+  const seznam = nejnovejsiNahore ? [...komentareK(cislo)].reverse() : komentareK(cislo);
+  const razeni = seznam.length > 1
+    ? `<button class="razeni-tl" type="button" data-razeni
+        title="Přepnout řazení">${nejnovejsiNahore ? "Nejnovější nahoře ↓" : "Nejstarší nahoře ↑"}</button>`
+    : "";
   const polozky = seznam.length
     ? `<ul>${seznam.map((k) => `
         <li class="komentar${k.odZadavatele ? "" : " od-autora"}">
@@ -998,7 +1019,7 @@ function komentareHtml(cislo, nadpis) {
     : `<p class="prazdno">${cislo ? "K tomuto dílu zatím nikdo nic nenapsal." : "Zatím žádné komentáře k projektu."}</p>`;
   const chyba = chybaFormulare[cislo] ? `<p class="chyba">${h(chybaFormulare[cislo])}</p>` : "";
   return `
-    <h3>${h(nadpis)}${seznam.length ? `<span>${seznam.length}</span>` : ""}</h3>
+    <h3>${h(nadpis)}${seznam.length ? `<span>${seznam.length}</span>` : ""}${razeni}</h3>
     ${polozky}
     <form class="formular" data-cislo="${h(cislo)}">
       <textarea name="text" maxlength="4000" required
@@ -1658,9 +1679,10 @@ document.addEventListener("click", (e) => {
   if (e.target === $("pozadi")) return stiskNaPozadi ? zavriDetail() : undefined;
   if (e.target === $("okno")) return zavriOkno();
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-stahni], [data-stahni-vse]"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-stahni], [data-stahni-vse], [data-razeni]"
   );
   if (!cil || cil.matches("form")) return;
+  if (cil.matches("[data-razeni]")) return prepniRazeni();
   if (cil.matches("#lupa img")) return $("lupa").classList.toggle("plna");
   if (cil.matches("[data-zavrit-lupu]")) return zavriLupu();
   if (cil.matches("[data-obnovit]")) return obnovRucne();
