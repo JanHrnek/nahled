@@ -9,7 +9,7 @@
 <title>Náhled projektu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!-- three.js pro 3D náhled — stáhne se, až když někdo 3D otevře. -->
 <script type="importmap">
 { "imports": {
@@ -28,13 +28,18 @@
  * a pořadí sestava → podsestava → díl.
  */
 :root {
-  --bg: #f4f5f7;
+  /* Tokeny portfolia Jan Hrnek (DESIGN.md): papír, tuš, vlasové linky. */
+  --bg: #f3f5f7;
   --plocha: #ffffff;
   --okraj: #dce4ea;
-  --text: #15293a;
-  --text-2: #5d7488;
-  --text-3: #8aa0b0;
+  --text: #101418;
+  --text-2: #49525b;
+  --text-3: #676f78;
   --pole: #a9bac7;
+  --zavoj: rgba(16, 20, 24, 0.92);
+  --stin-plovouci: 0 8px 24px rgba(16, 20, 24, 0.12);
+  --radius: 4px;
+  --radius-ostry: 2px;
   --akcent: #15293a;
   --akcent-2: #0e1d2b;
   --na-akcentu: #ffffff;
@@ -42,7 +47,7 @@
   --chyba: #b3261e;
   --chyba-bg: #fef2f2;
   --stin: 0 20px 50px rgba(15, 30, 45, 0.18);
-  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --mono: "Inter", "Segoe UI", system-ui, sans-serif; /* mono písmo se nepoužívá, čísla jsou tabulková */
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -69,7 +74,7 @@ button { cursor: pointer; }
   font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
 }
 .lista .co { font-size: 13px; color: var(--text-2); }
-.lista .co b { color: var(--text); font-weight: 600; }
+.lista .co b { color: var(--text); font-weight: 700; }
 
 main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 
@@ -102,7 +107,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
   display: flex; align-items: center; gap: 12px; margin: 0;
   padding: 8px 16px; border: 1px solid var(--okraj); border-bottom: 0;
   border-radius: 8px 8px 0 0;
-  font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--akcent);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--akcent);
 }
 /* Sytost záhlaví jde po stavbě výrobku jako v appce: celek nejtmavší. */
 .kos.sestava h2 { background: rgba(21, 41, 58, 0.20); }
@@ -163,7 +168,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 /* ── Komentáře ───────────────────────────────────────────── */
 .komentare h3 {
   display: flex; align-items: baseline; gap: 8px;
-  margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--text);
+  margin: 0 0 12px; font-size: 15px; font-weight: 700; color: var(--text);
 }
 .komentare h3 span { font-size: 13px; font-weight: 400; color: var(--text-3); }
 .komentare h3 .razeni-tl {
@@ -177,7 +182,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
 .komentar { border: 1px solid var(--okraj); border-radius: 8px; padding: 12px 16px; background: var(--plocha); }
 .komentar.od-autora { border-color: rgba(21, 41, 58, 0.2); background: var(--akcent-jemny); }
 .komentar .hlavicka { display: flex; align-items: baseline; gap: 8px; }
-.komentar .autor { font-size: 14px; font-weight: 600; }
+.komentar .autor { font-size: 14px; font-weight: 700; }
 .komentar .cas { margin-left: auto; font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .komentar .text { margin-top: 4px; font-size: 15px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
 .komentare .prazdno { font-size: 14px; color: var(--text-3); margin: 0 0 12px; }
@@ -294,7 +299,7 @@ dl.udaje { flex: 1; min-width: 0; margin: 0; font-size: 14px; }
 .denik .poznamka { color: var(--text-2); }
 .okoli { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px 24px; border-top: 1px solid var(--okraj); }
 .okoli h3 {
-  margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+  margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--text-3);
 }
 .okoli h3 span { margin-left: 8px; font-weight: 400; letter-spacing: 0; text-transform: none; }
@@ -425,10 +430,10 @@ footer { max-width: 1120px; margin: 0 auto; padding: 0 16px 40px; font-size: 12p
 }
 main { padding: 36px 24px 64px; }
 .projekt h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
-.projekt .kod { font-weight: 600; }
+.projekt .kod { font-weight: 700; }
 .souhrn { gap: 8px; margin: 18px 0 28px; }
 
-.stav { border-radius: 6px; font-weight: 600; padding: 2px 8px; }
+.stav { border-radius: 6px; font-weight: 700; padding: 2px 8px; }
 .stav.velky { padding: 4px 12px; }
 .souhrn .stav { padding: 4px 12px; font-size: 13px; }
 .stav.rozpracovany { --tecka: #f2c27a; border-color: #f2c27a; background: #fdf1e2; color: #92400e; }
@@ -446,11 +451,11 @@ main { padding: 36px 24px 64px; }
 .kos h2,
 .kos.sestava h2, .kos.podsestava h2, .kos.dil h2 {
   padding: 0 0 12px; border: 0; border-radius: 0; background: none;
-  font-size: 20px; font-weight: 600; letter-spacing: -0.01em; text-transform: none; color: var(--text);
+  font-size: 20px; font-weight: 700; letter-spacing: -0.01em; text-transform: none; color: var(--text);
 }
 .kos h2 span {
   border-radius: 999px; background: #eef2f5; padding: 2px 8px;
-  font-size: 12px; font-weight: 600; color: #5d7488;
+  font-size: 12px; font-weight: 700; color: #5d7488;
 }
 .radky { border: 0; border-radius: 0; background: none; }
 .radek, .zahlavi { padding: 14px 12px; }
@@ -462,7 +467,7 @@ main { padding: 36px 24px 64px; }
 .radek.reference { background: rgba(242, 237, 251, 0.6); }
 .radek.reference:hover { background: #f2edfb; }
 .radek .cislo { font-size: 14px; }
-.radek .cislo .zbytek { font-weight: 600; }
+.radek .cislo .zbytek { font-weight: 700; }
 .zahlavi {
   padding: 10px 12px; background: none; border-bottom: 1px solid var(--okraj);
   font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--text-3);
@@ -475,14 +480,14 @@ main { padding: 36px 24px 64px; }
 .formular textarea { border-radius: 12px; }
 
 /* Tlačítka jako v appce */
-.tl { height: 38px; border-radius: 10px; font-weight: 600; }
+.tl { height: 38px; border-radius: 10px; font-weight: 700; }
 .tl.vedlejsi { font-weight: 500; border-color: var(--okraj); }
 
 /* Detail dílu = okno appky */
 .pozadi { background: rgba(11, 20, 32, 0.45); }
 .detail { border: 0; border-radius: 20px; box-shadow: var(--stin-okno); }
 .detail .hlava { padding: 20px 24px; border-bottom-color: var(--line); }
-.detail .hlava .cislo { font-size: 20px; font-weight: 600; }
+.detail .hlava .cislo { font-size: 20px; font-weight: 700; }
 .krizek {
   width: 32px; height: 32px; padding: 0; border-radius: 8px;
   display: grid; place-items: center; background: var(--bg); font-size: 18px; color: var(--text-2);
@@ -491,7 +496,7 @@ main { padding: 36px 24px 64px; }
 /* Model / Výkres / 3D — segmentový přepínač */
 .prepinac { margin-top: 12px; gap: 2px; border: 0; border-radius: 10px; background: var(--bg); }
 .prepinac button { height: 30px; border-radius: 7px; font-size: 13px; }
-.prepinac button.aktivni { font-weight: 600; box-shadow: 0 1px 2px rgba(15, 30, 45, 0.12); }
+.prepinac button.aktivni { font-weight: 700; box-shadow: 0 1px 2px rgba(15, 30, 45, 0.12); }
 .udaj { padding: 10px 0; border-bottom-color: var(--line); }
 .okoli, .detail .sekce { border-top-color: var(--line); }
 .soused { border-radius: 8px; padding: 6px 8px; }
@@ -531,10 +536,10 @@ main { padding: 36px 24px 64px; }
 .formular .zmena { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); cursor: pointer; }
 .formular .zmena input { width: 16px; height: 16px; margin: 0; accent-color: var(--chyba); }
 .okno { max-width: 520px; padding: 24px; }
-.okno h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.okno h2 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
 .okno p, .okno li { font-size: 14px; color: var(--text-2); }
 .okno ul { margin: 12px 0 0; padding-left: 18px; display: grid; gap: 8px; }
-.okno li b { color: var(--text); font-weight: 600; }
+.okno li b { color: var(--text); font-weight: 700; }
 .okno form { display: grid; gap: 10px; margin-top: 14px; }
 .okno input {
   width: 100%; border: 1px solid var(--pole); border-radius: 8px; background: var(--plocha);
@@ -550,12 +555,158 @@ main { padding: 36px 24px 64px; }
 }
 .oznameni.chyba { background: var(--chyba); color: #fff; }
 .oznameni.zavira { animation: popOut 0.25s ease-in both; }
+
+/* ── Vzhled portfolia (B6) ───────────────────────────────────
+   Technický list: plochy odděluje vlasová linka, ne stín. Rohy 4 px
+   (štítky 2 px), jedno písmo Inter, nadpisy Black 900, tlačítka 700,
+   čísla tabulková. Stín mají jen věci, které plavou nad obsahem.
+   Přepisuje pravidla výš — logika stránky se nemění. */
+:root {
+  --line: var(--okraj);
+  --stin-karta: none;
+  --stin-okno: none;
+  --stin: var(--stin-plovouci);
+}
+::selection { background: var(--akcent); color: var(--na-akcentu); }
+body { font-size: 16px; line-height: 1.65; }
+.mono, .projekt .kod, .radek .cislo, .revize, .detail .hlava .cislo, .stazeni .soubor, .soused .mono {
+  font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+
+/* Lišta: papír s linkou, jméno místo značky; zarovnaná na obsah. */
+.lista {
+  padding: 14px max(24px, calc((100% - 1168px) / 2 + 24px));
+  background: var(--bg); border-bottom: 1px solid var(--okraj); box-shadow: none;
+}
+.lista .co { display: flex; align-items: baseline; gap: 12px; font-size: 14px; color: var(--text-3); }
+.lista .co b { font-size: 18px; font-weight: 900; letter-spacing: -0.02em; color: var(--text); }
+.lista .navod {
+  height: 40px; padding: 0 16px; border-radius: var(--radius);
+  border: 1px solid var(--pole); background: var(--plocha);
+  font-size: 14px; font-weight: 700; color: var(--text);
+}
+.lista .navod:hover { background: var(--plocha); border-color: var(--akcent); color: var(--text); }
+
+main { max-width: 1168px; padding: 48px 24px 80px; }
+.projekt .kod { font-size: 14px; font-weight: 700; letter-spacing: 0; }
+.projekt h1 {
+  margin: 4px 0 8px; font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 900;
+  line-height: 1.15; letter-spacing: -0.02em;
+}
+.projekt .meta { font-size: 13px; color: var(--text-3); }
+
+/* Štítky stavu: popisek s linkou, poloměr 2. */
+.stav { border-radius: var(--radius-ostry); font-size: 12px; font-weight: 500; padding: 2px 8px; }
+.stav.velky { font-size: 13px; padding: 4px 12px; }
+.souhrn .stav { font-size: 12px; padding: 4px 10px; }
+.souhrn .stav::before { border-radius: 50%; }
+
+/* Koš = plocha s linkou, nadpis Bold, počet jako štítek. */
+.kos { padding: 24px 24px 8px; border: 1px solid var(--okraj); border-radius: var(--radius); box-shadow: none; }
+.kos h2, .kos.sestava h2, .kos.podsestava h2, .kos.dil h2 {
+  font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--text);
+}
+.kos h2 span {
+  border: 1px solid var(--okraj); border-radius: var(--radius-ostry); background: none;
+  padding: 0 6px; font-size: 12px; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums;
+}
+.zahlavi {
+  font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-3);
+}
+.radek:hover { background: var(--bg); }
+.radek.zruseny:hover { background: #f6e3e3; }
+.radek.reference:hover { background: #f2edfb; }
+.radek .cislo { font-size: 14px; font-weight: 500; }
+.radek .cislo .zbytek { font-weight: 500; }
+.radek .cislo .predpona { font-weight: 700; }
+.bublina, .zamceno, .pozadavek { border-radius: var(--radius-ostry); }
+.revize { font-size: 12px; font-weight: 500; }
+
+/* Komentáře */
+.komentare h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.komentare h3 span { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.komentare h3 .razeni-tl { border-radius: var(--radius); font-weight: 500; }
+.komentar { border-radius: var(--radius); }
+.komentar .autor { font-weight: 700; }
+.formular input, .formular textarea, .heslo input, .okno input {
+  border-radius: var(--radius); border-color: var(--pole);
+}
+.formular textarea { border-radius: var(--radius); padding: 10px 12px; }
+.formular input:focus, .formular textarea:focus, .heslo input:focus, .okno input:focus {
+  border-color: var(--akcent); box-shadow: 0 0 0 1px var(--akcent);
+}
+
+/* Tlačítka: 40 px, 14 px / 700, poloměr 4; vedlejší = bílá s linkou. */
+.tl { height: 40px; padding: 0 18px; border-radius: var(--radius); font-size: 14px; font-weight: 700; }
+.tl.vedlejsi { font-weight: 700; border-color: var(--pole); }
+.tl.vedlejsi:hover:not(:disabled) { background: var(--plocha); border-color: var(--akcent); }
+.tl:not(:disabled):active, .krizek:active, .prepinac button:active, .zavrit:active, .obnovit:active {
+  transform: scale(0.98);
+}
+.obnovit {
+  border-radius: var(--radius); border-color: var(--pole); font-weight: 500; padding: 1px 9px 1px 7px;
+}
+.obnovit:hover { border-color: var(--akcent); }
+.karta { border: 1px solid var(--okraj); border-radius: var(--radius); box-shadow: none; }
+
+/* Okna: jeden závoj, plocha s linkou, bez stínu. */
+.pozadi { background: var(--zavoj); }
+.detail { border: 1px solid var(--okraj); border-radius: var(--radius); box-shadow: none; }
+.detail .hlava .cislo { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+.krizek {
+  width: 32px; height: 32px; border-radius: var(--radius);
+  border: 1px solid var(--pole); background: var(--plocha); color: var(--text);
+}
+.krizek:hover { background: var(--plocha); border-color: var(--akcent); }
+.ramecek { border-radius: var(--radius); }
+.ramecek .zvetsit span, .prohlizec3d .napoveda3d, .prohlizec3d .zvetsit3d {
+  border-radius: var(--radius); background: var(--plocha); border: 1px solid var(--pole);
+  font-weight: 500; box-shadow: var(--stin-plovouci);
+}
+/* Model / Výkres / 3D: čipy, aktivní = navy výplň. */
+.prepinac { gap: 8px; padding: 0; border: 0; background: none; border-radius: 0; }
+.prepinac button {
+  height: 32px; border: 1px solid var(--pole); border-radius: var(--radius);
+  background: var(--plocha); font-size: 13px; font-weight: 500; color: var(--text);
+}
+.prepinac button:hover { border-color: var(--akcent); color: var(--text); }
+.prepinac button.aktivni {
+  background: var(--akcent); border-color: var(--akcent); color: var(--na-akcentu);
+  font-weight: 500; box-shadow: none;
+}
+.udaj dt, .okoli h3 { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-3); }
+.okoli h3 span { margin-left: 8px; font-variant-numeric: tabular-nums; }
+.udaj b { font-weight: 700; }
+.soused, .historie-tl, .krizek { border-radius: var(--radius); }
+.okno h2 { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+.okno li b { font-weight: 700; }
+.oznameni { border-radius: var(--radius); font-weight: 500; box-shadow: var(--stin-plovouci); }
+
+/* Lupa a 3D: stejný závoj, tlačítko jako čudlík. */
+.lupa { background: var(--zavoj); }
+.lupa .zavrit {
+  height: 40px; border-radius: var(--radius); border: 1px solid var(--pole);
+  color: var(--text); font-size: 14px; font-weight: 700;
+}
+.lupa .prohlizec3d { border-radius: var(--radius); }
+
+/* Patička: popisek pod linkou, zarovnaný na obsah. */
+footer {
+  max-width: 1168px; padding: 24px 24px 40px; font-size: 12px; font-weight: 500; line-height: 1.5;
+}
+@media (max-width: 720px) {
+  .lista { padding: 12px 16px; }
+  .lista .co { gap: 8px; }
+  main { padding: 32px 16px 64px; }
+  .kos { padding: 16px 12px 4px; border-radius: var(--radius); }
+  .karta { padding: 16px 12px; }
+  footer { padding: 16px 16px 32px; }
+}
 </style>
 </head>
 <body>
 <div class="lista">
-  <div class="znacka" aria-hidden="true">JH</div>
-  <div class="co"><b>Jan Hrnek</b> · náhled projektu</div>
+  <div class="co"><b>Jan Hrnek</b><span>náhled projektu</span></div>
   <button class="navod" data-navod>Jak to funguje</button>
 </div>
 <main id="obsah"><p class="hlaska">Načítám…</p></main>
