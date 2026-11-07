@@ -957,8 +957,10 @@ function polozky() {
   return (nahled?.data?.polozky ?? []);
 }
 
+/** Komentáře k dílu (nebo k projektu). „V pořádku" z kola mezi ně nepatří —
+ *  ukazuje ho značka u dílu a pruh volby v detailu. */
 function komentareK(cislo) {
-  return (nahled?.komentare ?? []).filter((k) => (k.cislo || "") === cislo);
+  return (nahled?.komentare ?? []).filter((k) => (k.cislo || "") === cislo && k.volba !== "ok");
 }
 
 // ── Kola připomínek ────────────────────────────────────────
@@ -1892,7 +1894,8 @@ function otevriNavod() {
       <li><b>Kola připomínek</b> — až díly vydám, otevřete prosím každý a zvolte
         <b>V pořádku</b>, nebo napište jednu připomínku. Volby se ukládají jen jako koncept,
         nic mi neodejde a do odeslání kola je můžete měnit.
-        Volba platí pro dané kolo. Hotové díly procházet nemusíte, připomínku k nim ale napsat můžete.</li>
+        Volba platí pro dané kolo. Díly, které po odeslání kola zůstanou v pořádku, označím jako hotové.
+        Hotové díly procházet nemusíte, připomínku k nim ale napsat můžete.</li>
       <li><b>Odeslat připomínky</b> — až budete mít projité všechny díly, klikněte
         dole v Komentářích k projektu na Odeslat připomínky, klidně s komentářem k celému projektu.
         Nejdřív se ukáže náhled všech dílů s vašimi volbami ke kontrole, odešle se až po potvrzení. Potvrzením kolo uzavřete a já připomínky
