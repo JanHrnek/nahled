@@ -1263,18 +1263,29 @@ function potvrdKolo(formular) {
   koloKPotvrzeni = formular;
   const text = formular.text.value.trim();
   const dily = dilySouhrnu();
-  const pripominek = dily.filter((p) => volbaDilu(p.cislo)?.volba === "pripominka").length;
+  // Připomínka z tohohle kola, kterou nová revize už vyřešila, je
+  // zapracovaná — ne červená a nepočítá se mezi nové připomínky.
+  const zapracovana = (v) => v?.volba === "pripominka" && v.vyrizeno && !v.koncept;
+  const pripominek = dily.filter((p) => {
+    const v = volbaDilu(p.cislo);
+    return v?.volba === "pripominka" && !zapracovana(v);
+  }).length;
+  const zapracovanych = dily.filter((p) => zapracovana(volbaDilu(p.cislo))).length;
   const radky = dily.map((p) => {
     const v = volbaDilu(p.cislo);
     return `<li><span class="cislo">${cislo(p.cislo)}</span> ${h(p.popis || "")}<br>${
-      v?.volba === "pripominka"
-        ? `<span class="volba pripominka">připomínka</span> ${h(v.text)}`
-        : `<span class="volba ok">✓ v pořádku</span>`}</li>`;
+      zapracovana(v)
+        ? `<span class="volba zapracovano">✓ zapracováno</span> ${h(v.text)}`
+        : v?.volba === "pripominka"
+          ? `<span class="volba pripominka">připomínka</span> ${h(v.text)}`
+          : `<span class="volba ok">✓ v pořádku</span>`}</li>`;
   }).join("");
+  const vPoradku = dily.length - pripominek - zapracovanych;
   otevriOkno(`
     <h2>Odeslat ${kolo()}. kolo připomínek?</h2>
-    <p>${dily.length - pripominek} ${sklonuj(dily.length - pripominek, "díl", "díly", "dílů")} v pořádku,
-      ${pripominek} ${sklonuj(pripominek, "připomínka", "připomínky", "připomínek")}.
+    <p>${vPoradku} ${sklonuj(vPoradku, "díl", "díly", "dílů")} v pořádku,
+      ${pripominek} ${sklonuj(pripominek, "připomínka", "připomínky", "připomínek")}${
+      zapracovanych ? `, ${zapracovanych} už ${sklonuj(zapracovanych, "zapracovaná", "zapracované", "zapracovaných")}` : ""}.
       Zkontrolujte prosím souhrn. Po odeslání už volby v tomto kole nejde změnit.</p>
     <ul class="souhrn-kola">${radky}</ul>
     ${text ? `<p><b>Komentář k projektu:</b> ${h(text)}</p>` : ""}
