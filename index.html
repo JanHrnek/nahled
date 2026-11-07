@@ -549,6 +549,7 @@ footer { padding-left: 24px; padding-right: 24px; }
 .volba.ok { border-color: #bbe5c8; background: #effaf2; color: #1e7a3c; }
 .volba.pripominka { border-color: #fecaca; background: var(--chyba-bg); color: var(--chyba); }
 .volba.ceka { border-style: dashed; }
+.volba.zapracovano { border-color: var(--okraj); background: var(--bg); color: var(--text-2); }
 .radek .popis .volba { margin-left: 8px; vertical-align: 1px; }
 .komentar .hlavicka .volba { align-self: center; }
 .kolo { margin: 16px 0; }
@@ -1215,6 +1216,7 @@ function znackaVolby(p) {
   if (mimoKola(p)) return "";
   const v = volbaDilu(p.cislo);
   if (v?.volba === "ok") return `<span class="volba ok" title="V pořádku v ${kolo()}. kole">✓ v pořádku</span>`;
+  if (v?.volba === "pripominka" && v.vyrizeno) return `<span class="volba zapracovano" title="Připomínka z ${kolo()}. kola je zapracovaná v nové revizi">✓ zapracováno</span>`;
   if (v?.volba === "pripominka") return `<span class="volba pripominka" title="Připomínka v ${kolo()}. kole">připomínka</span>`;
   if (koloOdeslane() || p.stav === "hotovy") return "";
   return `<span class="volba ceka" title="V tomhle kole ještě bez volby">k projití</span>`;
@@ -1329,9 +1331,12 @@ function volbaHtml(p) {
   if (p.stav === "reference" || p.stav === "zruseny") return "";
   const hotovy = p.stav === "hotovy";
   const v = volbaDilu(p.cislo);
+  const zapracovano = v?.volba === "pripominka" && v.vyrizeno && !v.koncept;
   const znacka = v?.volba === "ok"
     ? `<span class="volba ok">✓ v pořádku</span>`
-    : `<span class="volba pripominka">připomínka</span>`;
+    : zapracovano
+      ? `<span class="volba zapracovano">✓ zapracováno</span>`
+      : `<span class="volba pripominka">připomínka</span>`;
   if (v?.koncept) {
     // Koncept: zatím nic neodešlo, jde změnit až do odeslání kola.
     return `<div class="volba-dilu hotovo">${znacka}
@@ -1341,7 +1346,11 @@ function volbaHtml(p) {
   }
   if (v) {
     return `<div class="volba-dilu hotovo">${znacka}
-      ${v.volba === "ok" ? `V ${kolo()}. kole jste díl označili jako v pořádku.` : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
+      ${v.volba === "ok"
+        ? `V ${kolo()}. kole jste díl označili jako v pořádku.`
+        : zapracovano
+          ? `Připomínku z ${kolo()}. kola jsem zapracoval ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}.`
+          : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
   }
   if (koloOdeslane()) {
     return `<div class="volba-dilu hotovo">${kolo()}. kolo je odeslané. Další připomínky půjdou napsat po novém vydání.</div>`;
