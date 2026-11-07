@@ -1461,7 +1461,11 @@ function komentareHtml(cislo, nadpis) {
             <span class="autor">${h(k.autor)}</span>
             ${k.volba === "ok" ? `<span class="volba ok">✓ v pořádku · ${k.kolo ?? 1}. kolo</span>` : ""}
             ${k.volba === "odeslani" ? `<span class="volba ok">${k.kolo ?? 1}. kolo odesláno</span>` : ""}
-            ${k.volba === "pripominka" ? `<span class="volba pripominka">připomínka · ${k.kolo ?? 1}. kolo</span>` : ""}
+            ${k.volba === "pripominka"
+              ? k.vyrizeno
+                ? `<span class="volba zapracovano">${k.vyrizeni === "zamitnuto" ? "připomínka" : "✓ připomínka"} · ${k.kolo ?? 1}. kolo · ${k.vyrizeni === "zamitnuto" ? "zamítnuto" : "zapracováno"}</span>`
+                : `<span class="volba pripominka">připomínka · ${k.kolo ?? 1}. kolo</span>`
+              : ""}
             ${k.pozadujeZmenu && k.volba !== "pripominka"
               ? k.vyrizeno
                 ? `<span class="pozadavek vyrizeno">${k.vyrizeni === "zamitnuto" ? "Požadavek zamítnut" : "Vyřízeno novou revizí"}</span>`
