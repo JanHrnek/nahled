@@ -52,6 +52,9 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* Místo pro posuvník je vždy vyhrazené — při otevření detailu (body bez
+   posuvníku) se stránka pod ním nesmí posunout do strany. */
+html { scrollbar-gutter: stable; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -651,6 +654,9 @@ main { max-width: 1168px; padding: 48px 24px 80px; }
 .radek .cislo .predpona { font-weight: 700; }
 .bublina, .zamceno, .pozadavek, .volba { border-radius: var(--radius-ostry); }
 .volba-dilu, .souhrn-kola { border-radius: var(--radius); }
+.volba-dilu .volba-text { flex: 1 1 240px; }
+.volba-dilu .koncept { display: block; margin-top: 2px; font-size: 12px; color: var(--text-3); }
+.tl.maly { height: 32px; padding: 0 12px; font-size: 13px; }
 .ukazatel { border-radius: var(--radius-ostry); }
 .revize { font-size: 12px; font-weight: 500; }
 
@@ -987,8 +993,13 @@ function dilySouhrnu() {
 
 /** Volba u dílu v aktuálním kole: komentář s volbou, nebo null. */
 function volbaDilu(cislo) {
-  return (nahled?.komentare ?? []).find((k) =>
-    k.cislo === cislo && (k.volba === "ok" || k.volba === "pripominka") && (k.kolo ?? 1) === kolo()) || null;
+  // Odeslaná volba je v komentářích; rozpracovaná (koncept) zvlášť —
+  // tu appka nevidí, dokud zadavatel kolo neodešle.
+  const odeslana = (nahled?.komentare ?? []).find((k) =>
+    k.cislo === cislo && (k.volba === "ok" || k.volba === "pripominka") && (k.kolo ?? 1) === kolo());
+  if (odeslana) return odeslana;
+  const koncept = (nahled?.koncepty ?? []).find((k) => k.cislo === cislo && (k.kolo ?? 1) === kolo());
+  return koncept ? { ...koncept, koncept: true } : null;
 }
 
 /** Kolik dílů má v tomhle kole volbu. */
@@ -1227,6 +1238,7 @@ function koloHtml(anim) {
         <span>prošli jste ${hotovo} z ${celkem} ${sklonuj(celkem, "dílu", "dílů", "dílů")}</span></div>
       <div class="ukazatel"><div style="width:${Math.round((hotovo / celkem) * 100)}%"></div></div>
       <p>Otevřete každý díl a zvolte <b>V pořádku</b>, nebo napište jednu připomínku.
+        Volby se ukládají jen jako koncept: nic mi neodejde a do odeslání je můžete měnit.
         Až budete mít vše projité, klikněte dole v <b>Komentářích k projektu</b> na <b>Odeslat připomínky</b>.
         Nejdřív se vám ukáže náhled všech dílů s vašimi volbami ke kontrole a odešle se až po potvrzení.
         Potvrzením kolo uzavřete a já připomínky zapracuji najednou.</p>
@@ -1282,6 +1294,15 @@ async function odesliKolo(formular) {
   }
   try {
     if (demo) {
+      // Jako databáze: koncepty naráz do komentářů.
+      for (const c of nahled.koncepty ?? []) {
+        nahled.komentare.push({
+          id: `${Date.now()}-${c.cislo}`, cislo: c.cislo, autor: c.autor, text: c.text,
+          odZadavatele: true, vytvoreno: new Date().toISOString(),
+          pozadujeZmenu: c.volba === "pripominka", vyrizeno: null, kolo: c.kolo, volba: c.volba,
+        });
+      }
+      nahled.koncepty = [];
       nahled.komentare.push({
         id: String(Date.now()), cislo: "", autor, text: text || "Vše jsme prošli, prosím proveďte změny.",
         odZadavatele: true, vytvoreno: new Date().toISOString(), kolo: kolo(), volba: "odeslani",
@@ -1308,13 +1329,19 @@ function volbaHtml(p) {
   if (p.stav === "reference" || p.stav === "zruseny") return "";
   const hotovy = p.stav === "hotovy";
   const v = volbaDilu(p.cislo);
-  if (v?.volba === "ok") {
-    return `<div class="volba-dilu hotovo"><span class="volba ok">✓ v pořádku</span>
-      V ${kolo()}. kole jste díl označili jako v pořádku.</div>`;
+  const znacka = v?.volba === "ok"
+    ? `<span class="volba ok">✓ v pořádku</span>`
+    : `<span class="volba pripominka">připomínka</span>`;
+  if (v?.koncept) {
+    // Koncept: zatím nic neodešlo, jde změnit až do odeslání kola.
+    return `<div class="volba-dilu hotovo">${znacka}
+      <span class="volba-text">${v.volba === "pripominka" ? h(v.text) : "Díl jste označili jako v pořádku."}
+        <span class="koncept">Uloženo jako koncept, odešle se až s Odeslat připomínky.</span></span>
+      <button class="tl vedlejsi maly" type="button" data-zrus-volbu="${h(p.cislo)}">Změnit</button></div>`;
   }
   if (v) {
-    return `<div class="volba-dilu hotovo"><span class="volba pripominka">připomínka</span>
-      Připomínku k tomuto dílu v ${kolo()}. kole jste už poslali. Zapracuji ji po odeslání kola.</div>`;
+    return `<div class="volba-dilu hotovo">${znacka}
+      ${v.volba === "ok" ? `V ${kolo()}. kole jste díl označili jako v pořádku.` : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
   }
   if (koloOdeslane()) {
     return `<div class="volba-dilu hotovo">${kolo()}. kolo je odeslané. Další připomínky půjdou napsat po novém vydání.</div>`;
@@ -1326,12 +1353,12 @@ function volbaHtml(p) {
     <form class="formular volba-dilu" data-volba-dilu="${h(p.cislo)}">
       <div class="volba-nadpis">${hotovy
         ? `<b>Díl je hotový</b>, procházet ho nemusíte. Pokud na něm přesto potřebujete změnu, napište připomínku.`
-        : `<b>${kolo()}. kolo připomínek</b> — zvolte jedno, pak už to změnit nejde.`}</div>
+        : `<b>${kolo()}. kolo připomínek</b> — zvolte jedno. Uloží se jako koncept, odešle se až s Odeslat připomínky.`}</div>
       <textarea name="text" maxlength="4000" placeholder="Připomínka k ${h(p.cislo)} — co upravit"></textarea>
       <div class="dole">
         <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
         ${hotovy ? "" : `<button class="tl vedlejsi" type="submit" data-volba="ok">✓ V pořádku</button>`}
-        <button class="tl" type="submit" data-volba="pripominka">Odeslat připomínku</button>
+        <button class="tl" type="submit" data-volba="pripominka">Uložit připomínku</button>
       </div>
       ${chyba}
     </form>`;
@@ -1350,10 +1377,10 @@ async function zvolDil(formular, volba) {
   for (const b of formular.querySelectorAll("button")) b.disabled = true;
   try {
     if (demo) {
-      nahled.komentare.push({
-        id: String(Date.now()), cislo, autor, text: volba === "ok" ? (text || "V pořádku") : text,
-        odZadavatele: true, vytvoreno: new Date().toISOString(),
-        pozadujeZmenu: volba === "pripominka", vyrizeno: null, kolo: kolo(), volba,
+      nahled.koncepty = (nahled.koncepty ?? []).filter((k) => k.cislo !== cislo);
+      nahled.koncepty.push({
+        cislo, autor, text: volba === "ok" ? (text || "V pořádku") : text,
+        vytvoreno: new Date().toISOString(), kolo: kolo(), volba,
       });
     } else {
       await rpc("zvol_dil", {
@@ -1362,6 +1389,23 @@ async function zvolDil(formular, volba) {
       });
     }
     delete chybaFormulare["#volba"];
+    await obnov();
+    if (demo) vykresli();
+  } catch (e) {
+    chybaFormulare["#volba"] = e.message;
+    vykresli();
+  }
+}
+
+/** „Změnit" u konceptu — díl je zase k projití. */
+async function zrusVolbu(cislo, tlacitko) {
+  tlacitko.disabled = true;
+  try {
+    if (demo) {
+      nahled.koncepty = (nahled.koncepty ?? []).filter((k) => k.cislo !== cislo);
+    } else {
+      await rpc("zrus_volbu", { p_kod: kod, p_cislo: cislo, ...(heslo ? { p_heslo: heslo } : {}) });
+    }
     await obnov();
     if (demo) vykresli();
   } catch (e) {
@@ -1822,7 +1866,8 @@ function otevriNavod() {
       prosím nepřeposílejte. Za úpravy výkresů provedené mimo mě neodpovídám.</p>
     <ul>
       <li><b>Kola připomínek</b> — až díly vydám, otevřete prosím každý a zvolte
-        <b>V pořádku</b>, nebo napište jednu připomínku. Volbu už pak nejde změnit.
+        <b>V pořádku</b>, nebo napište jednu připomínku. Volby se ukládají jen jako koncept,
+        nic mi neodejde a do odeslání kola je můžete měnit.
         Volba platí pro dané kolo. Hotové díly procházet nemusíte, připomínku k nim ale napsat můžete.</li>
       <li><b>Odeslat připomínky</b> — až budete mít projité všechny díly, klikněte
         dole v Komentářích k projektu na Odeslat připomínky, klidně s komentářem k celému projektu.
@@ -2104,7 +2149,7 @@ document.addEventListener("click", (e) => {
   if (e.target === $("pozadi")) return stiskNaPozadi ? zavriDetail() : undefined;
   if (e.target === $("okno")) return zavriOkno();
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-potvrd-kolo], [data-stahni], [data-stahni-vse], [data-razeni]"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-potvrd-kolo], [data-zrus-volbu], [data-stahni], [data-stahni-vse], [data-razeni]"
   );
   if (!cil || cil.matches("form")) return;
   if (cil.matches("[data-razeni]")) return prepniRazeni();
@@ -2113,6 +2158,7 @@ document.addEventListener("click", (e) => {
   if (cil.matches("[data-obnovit]")) return obnovRucne();
   if (cil.matches("[data-navod]")) return otevriNavod();
   if (cil.matches("[data-zavrit-okno]")) return zavriOkno();
+  if (cil.matches("[data-zrus-volbu]")) return zrusVolbu(cil.dataset.zrusVolbu, cil);
   if (cil.matches("[data-potvrd-kolo]")) {
     const formular = koloKPotvrzeni;
     koloKPotvrzeni = null;
