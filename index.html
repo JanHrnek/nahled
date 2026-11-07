@@ -428,7 +428,9 @@ footer { max-width: 1120px; margin: 0 auto; padding: 0 16px 40px; font-size: 12p
   background: linear-gradient(to bottom, #34465a, #142636);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 3px 8px -3px rgba(21, 41, 58, 0.5);
 }
-main { padding: 36px 24px 64px; }
+main { padding: 36px 24px 20px; }
+/* patička na stejné hraně jako karty nad ní */
+footer { padding-left: 24px; padding-right: 24px; }
 .projekt h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .projekt .kod { font-weight: 700; }
 .souhrn { gap: 8px; margin: 18px 0 28px; }
@@ -535,6 +537,34 @@ main { padding: 36px 24px 64px; }
 .pozadavek.vyrizeno { border-color: var(--okraj); background: var(--bg); color: var(--text-2); }
 .formular .zmena { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); cursor: pointer; }
 .formular .zmena input { width: 16px; height: 16px; margin: 0; accent-color: var(--chyba); }
+/* Kola připomínek */
+.volba {
+  display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--okraj); border-radius: 999px;
+  background: var(--bg); color: var(--text-2); padding: 1px 9px; font-size: 11px; font-weight: 500;
+  font-style: normal; white-space: nowrap;
+}
+.volba.ok { border-color: #bbe5c8; background: #effaf2; color: #1e7a3c; }
+.volba.pripominka { border-color: #fecaca; background: var(--chyba-bg); color: var(--chyba); }
+.volba.ceka { border-style: dashed; }
+.radek .popis .volba { margin-left: 8px; vertical-align: 1px; }
+.komentar .hlavicka .volba { align-self: center; }
+.kolo { margin: 16px 0; }
+.kolo .kolo-hlavicka { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 16px; }
+.kolo .kolo-hlavicka span { font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.kolo p { margin: 8px 0 12px; font-size: 14px; color: var(--text-2); line-height: 1.45; }
+.kolo.odeslano p { margin-bottom: 0; }
+.ukazatel { height: 6px; margin-top: 10px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.ukazatel div { height: 100%; border-radius: inherit; background: var(--akcent); transition: width 0.3s; }
+.volba-dilu { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--okraj); border-radius: 12px; background: var(--plocha); }
+.volba-dilu.hotovo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--text-2); }
+.volba-dilu .volba-nadpis { font-size: 14px; color: var(--text-2); }
+.volba-dilu .volba-nadpis b { color: var(--text); }
+.komentare .vysvetleni { margin: -4px 0 12px; font-size: 13px; color: var(--text-3); line-height: 1.45; }
+.souhrn-kola { list-style: none; margin: 12px 0 0; padding: 0; max-height: 46vh; overflow: auto;
+  border: 1px solid var(--okraj); border-radius: 10px; }
+.souhrn-kola li { padding: 8px 12px; border-bottom: 1px solid var(--okraj); font-size: 13px; line-height: 1.5; }
+.souhrn-kola li:last-child { border-bottom: 0; }
+.souhrn-kola .cislo { font-family: var(--mono); font-weight: 600; margin-right: 6px; }
 .okno { max-width: 520px; padding: 24px; }
 .okno h2 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
 .okno p, .okno li { font-size: 14px; color: var(--text-2); }
@@ -619,7 +649,9 @@ main { max-width: 1168px; padding: 48px 24px 80px; }
 .radek .cislo { font-size: 14px; font-weight: 500; }
 .radek .cislo .zbytek { font-weight: 500; }
 .radek .cislo .predpona { font-weight: 700; }
-.bublina, .zamceno, .pozadavek { border-radius: var(--radius-ostry); }
+.bublina, .zamceno, .pozadavek, .volba { border-radius: var(--radius-ostry); }
+.volba-dilu, .souhrn-kola { border-radius: var(--radius); }
+.ukazatel { border-radius: var(--radius-ostry); }
 .revize { font-size: 12px; font-weight: 500; }
 
 /* Komentáře */
@@ -922,6 +954,49 @@ function komentareK(cislo) {
   return (nahled?.komentare ?? []).filter((k) => (k.cislo || "") === cislo);
 }
 
+// ── Kola připomínek ────────────────────────────────────────
+// Kolo začne vydáním. U každého dílu zadavatel zvolí „V pořádku", nebo
+// napíše jednu připomínku — obojí platí jen pro to kolo. Kolo uzavře
+// „Odeslat připomínky". Díly ve stavu Hotový (nastavuje Honza v appce) se
+// neprocházejí. Další kolo zakládá Honza v appce. Databáze hlídá totéž.
+
+function kolo() {
+  return nahled?.kolo ?? 1;
+}
+
+/** Odeslal zadavatel aktuální kolo? Pak se čeká na nové vydání. */
+function koloOdeslane() {
+  return Boolean(nahled?.koloOdeslano);
+}
+
+/** Díl mimo kola úplně: reference a zrušený. */
+function mimoKola(p) {
+  return p.stav === "reference" || p.stav === "zruseny";
+}
+
+/** Díly, které se v kole musí projít. Hotové ne — připomínku k nim
+ *  ale napsat jde, i u hotového se může objevit změna. */
+function dilyKola() {
+  return polozky().filter((p) => !mimoKola(p) && p.stav !== "hotovy");
+}
+
+/** Díly do souhrnu před odesláním: povinné plus hotové s připomínkou. */
+function dilySouhrnu() {
+  return polozky().filter((p) => !mimoKola(p) && (p.stav !== "hotovy" || volbaDilu(p.cislo)));
+}
+
+/** Volba u dílu v aktuálním kole: komentář s volbou, nebo null. */
+function volbaDilu(cislo) {
+  return (nahled?.komentare ?? []).find((k) =>
+    k.cislo === cislo && (k.volba === "ok" || k.volba === "pripominka") && (k.kolo ?? 1) === kolo()) || null;
+}
+
+/** Kolik dílů má v tomhle kole volbu. */
+function prosleDily() {
+  const dily = dilyKola();
+  return { hotovo: dily.filter((p) => volbaDilu(p.cislo)).length, celkem: dily.length };
+}
+
 /** Čeká díl na novou revizi? Nevyřízený požadavek na změnu zamkne stažení. */
 function zamceno(cislo) {
   return (nahled?.komentare ?? []).some((k) => k.cislo === cislo && k.pozadujeZmenu && !k.vyrizeno);
@@ -995,8 +1070,8 @@ function zachovejRozepsane(kde, prekresli) {
 }
 
 function vykresli() {
-  zachovejRozepsane("#komentare-projektu", vykresliPrehled);
-  if (otevrene) vykresliDetail();
+  zachovejRozepsane("#kolo", () => zachovejRozepsane("#komentare-projektu", vykresliPrehled));
+  if (otevrene) zachovejRozepsane("#detail", vykresliDetail);
 }
 
 function vykresliPrehled() {
@@ -1047,6 +1122,7 @@ function vykresliPrehled() {
       </div>
     </section>
     <div class="souhrn${anim ? " anim-fade" : ""}">${souhrn}</div>
+    ${koloHtml(anim)}
     ${kose || `<p class="hlaska">Projekt zatím nemá žádné díly.</p>`}
     <section class="karta komentare${anim ? " anim-karta" : ""}" id="komentare-projektu"${zpozdeni(80 + poradiKose * 70)}>
       ${komentareHtml("", "Komentáře k projektu")}
@@ -1114,12 +1190,184 @@ function radek(p, zpozdeniMs = null) {
         pocet ? `<span class="bublina" title="${pocet} ${sklonuj(pocet, "komentář", "komentáře", "komentářů")}">${IKONA_KOMENTARE}${pocet}</span>` : ""
       }${
         zamceno(p.cislo) ? `<span class="zamceno" title="Požadovaná změna — čeká na novou revizi">${IKONA_ZAMKU}čeká na revizi</span>` : ""
-      }</span>
+      }${znackaVolby(p)}</span>
       <span class="material" title="${h(p.material)}">${h(p.material) || "—"}</span>
       <span class="rev-bunka">${revize(p)}</span>
       <span class="stav-bunka">${stitek(stavDilu(p))}</span>
       <span class="sipka">›</span>
     </button>`;
+}
+
+/** Značka u řádku: volba v tomhle kole, nebo „k projití". Hotové díly
+ *  mají štítek Hotový ve sloupci Stav, víc netřeba. */
+function znackaVolby(p) {
+  if (mimoKola(p)) return "";
+  const v = volbaDilu(p.cislo);
+  if (v?.volba === "ok") return `<span class="volba ok" title="V pořádku v ${kolo()}. kole">✓ v pořádku</span>`;
+  if (v?.volba === "pripominka") return `<span class="volba pripominka" title="Připomínka v ${kolo()}. kole">připomínka</span>`;
+  if (koloOdeslane() || p.stav === "hotovy") return "";
+  return `<span class="volba ceka" title="V tomhle kole ještě bez volby">k projití</span>`;
+}
+
+/** Pruh nahoře: kolo, kolik je projito, odeslání. */
+function koloHtml(anim) {
+  const { hotovo, celkem } = prosleDily();
+  if (!celkem) return "";
+  if (koloOdeslane()) {
+    return `
+      <section class="karta kolo odeslano${anim ? " anim-karta" : ""}">
+        <div class="kolo-hlavicka"><b>${kolo()}. kolo připomínek je odeslané</b>
+          <span>${kdy(nahled.koloOdeslano)}</span></div>
+        <p>Děkuji, připomínky zapracuji najednou. Další kolo začne, až díly znovu vydám.</p>
+      </section>`;
+  }
+  return `
+    <section class="karta kolo${anim ? " anim-karta" : ""}">
+      <div class="kolo-hlavicka"><b>${kolo()}. kolo připomínek</b>
+        <span>prošli jste ${hotovo} z ${celkem} ${sklonuj(celkem, "dílu", "dílů", "dílů")}</span></div>
+      <div class="ukazatel"><div style="width:${Math.round((hotovo / celkem) * 100)}%"></div></div>
+      <p>Otevřete každý díl a zvolte <b>V pořádku</b>, nebo napište jednu připomínku.
+        Až budete mít vše projité, klikněte dole v <b>Komentářích k projektu</b> na <b>Odeslat připomínky</b>.
+        Nejdřív se vám ukáže náhled všech dílů s vašimi volbami ke kontrole a odešle se až po potvrzení.
+        Potvrzením kolo uzavřete a já připomínky zapracuji najednou.</p>
+    </section>`;
+}
+
+/** Jde kolo odeslat? Běží a každý díl má volbu. */
+function koloJdeOdeslat() {
+  const { hotovo, celkem } = prosleDily();
+  return celkem > 0 && !koloOdeslane() && hotovo === celkem;
+}
+
+/** Formulář, jehož kolo čeká na potvrzení v okně. */
+let koloKPotvrzeni = null;
+
+/** Před odesláním souhrn: každý díl s volbou, ať nic neodejde omylem. */
+function potvrdKolo(formular) {
+  const autor = formular.autor.value.trim();
+  if (!autor) return formular.autor.focus();
+  koloKPotvrzeni = formular;
+  const text = formular.text.value.trim();
+  const dily = dilySouhrnu();
+  const pripominek = dily.filter((p) => volbaDilu(p.cislo)?.volba === "pripominka").length;
+  const radky = dily.map((p) => {
+    const v = volbaDilu(p.cislo);
+    return `<li><span class="cislo">${cislo(p.cislo)}</span> ${h(p.popis || "")}<br>${
+      v?.volba === "pripominka"
+        ? `<span class="volba pripominka">připomínka</span> ${h(v.text)}`
+        : `<span class="volba ok">✓ v pořádku</span>`}</li>`;
+  }).join("");
+  otevriOkno(`
+    <h2>Odeslat ${kolo()}. kolo připomínek?</h2>
+    <p>${dily.length - pripominek} ${sklonuj(dily.length - pripominek, "díl", "díly", "dílů")} v pořádku,
+      ${pripominek} ${sklonuj(pripominek, "připomínka", "připomínky", "připomínek")}.
+      Zkontrolujte prosím souhrn. Po odeslání už volby v tomto kole nejde změnit.</p>
+    <ul class="souhrn-kola">${radky}</ul>
+    ${text ? `<p><b>Komentář k projektu:</b> ${h(text)}</p>` : ""}
+    <div class="tlacitka" style="margin-top:18px">
+      <button class="tl vedlejsi" data-zavrit-okno>Zpět</button>
+      <button class="tl" data-potvrd-kolo>Potvrzuji a odesílám</button>
+    </div>`);
+}
+
+async function odesliKolo(formular) {
+  const text = formular.text.value.trim();
+  const autor = formular.autor.value.trim();
+  if (!autor) return;
+  zapamatujJmeno(autor);
+  const tlacitko = formular.querySelector("[data-akce=kolo]");
+  if (tlacitko) {
+    tlacitko.disabled = true;
+    tlacitko.textContent = "Odesílám…";
+  }
+  try {
+    if (demo) {
+      nahled.komentare.push({
+        id: String(Date.now()), cislo: "", autor, text: text || "Vše jsme prošli, prosím proveďte změny.",
+        odZadavatele: true, vytvoreno: new Date().toISOString(), kolo: kolo(), volba: "odeslani",
+      });
+      nahled.koloOdeslano = new Date().toISOString();
+    } else {
+      await rpc("odesli_kolo", {
+        p_kod: kod, p_autor: autor, p_text: text,
+        ...(heslo ? { p_heslo: heslo } : {}),
+      });
+    }
+    delete chybaFormulare[""];
+    formular.text.value = "";
+    await obnov();
+    oznam("Připomínky jsou odeslané. Děkuji.");
+  } catch (e) {
+    chybaFormulare[""] = e.message;
+    vykresli();
+  }
+}
+
+/** Volba u dílu v detailu: „V pořádku", nebo jedna připomínka. */
+function volbaHtml(p) {
+  if (p.stav === "reference" || p.stav === "zruseny") return "";
+  const hotovy = p.stav === "hotovy";
+  const v = volbaDilu(p.cislo);
+  if (v?.volba === "ok") {
+    return `<div class="volba-dilu hotovo"><span class="volba ok">✓ v pořádku</span>
+      V ${kolo()}. kole jste díl označili jako v pořádku.</div>`;
+  }
+  if (v) {
+    return `<div class="volba-dilu hotovo"><span class="volba pripominka">připomínka</span>
+      Připomínku k tomuto dílu v ${kolo()}. kole jste už poslali. Zapracuji ji po odeslání kola.</div>`;
+  }
+  if (koloOdeslane()) {
+    return `<div class="volba-dilu hotovo">${kolo()}. kolo je odeslané. Další připomínky půjdou napsat po novém vydání.</div>`;
+  }
+  const chyba = chybaFormulare["#volba"] ? `<p class="chyba">${h(chybaFormulare["#volba"])}</p>` : "";
+  // Hotový díl se procházet nemusí — jen připomínka, když se přece
+  // objeví změna. „V pořádku" by u něj nic neznamenalo.
+  return `
+    <form class="formular volba-dilu" data-volba-dilu="${h(p.cislo)}">
+      <div class="volba-nadpis">${hotovy
+        ? `<b>Díl je hotový</b>, procházet ho nemusíte. Pokud na něm přesto potřebujete změnu, napište připomínku.`
+        : `<b>${kolo()}. kolo připomínek</b> — zvolte jedno, pak už to změnit nejde.`}</div>
+      <textarea name="text" maxlength="4000" placeholder="Připomínka k ${h(p.cislo)} — co upravit"></textarea>
+      <div class="dole">
+        <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
+        ${hotovy ? "" : `<button class="tl vedlejsi" type="submit" data-volba="ok">✓ V pořádku</button>`}
+        <button class="tl" type="submit" data-volba="pripominka">Odeslat připomínku</button>
+      </div>
+      ${chyba}
+    </form>`;
+}
+
+async function zvolDil(formular, volba) {
+  const cislo = formular.dataset.volbaDilu;
+  const text = formular.text.value.trim();
+  const autor = formular.autor.value.trim();
+  if (!autor) return formular.autor.focus();
+  if (volba === "pripominka" && !text) {
+    chybaFormulare["#volba"] = "Napište, co upravit. Když je díl v pořádku, zvolte V pořádku.";
+    return vykresli();
+  }
+  zapamatujJmeno(autor);
+  for (const b of formular.querySelectorAll("button")) b.disabled = true;
+  try {
+    if (demo) {
+      nahled.komentare.push({
+        id: String(Date.now()), cislo, autor, text: volba === "ok" ? (text || "V pořádku") : text,
+        odZadavatele: true, vytvoreno: new Date().toISOString(),
+        pozadujeZmenu: volba === "pripominka", vyrizeno: null, kolo: kolo(), volba,
+      });
+    } else {
+      await rpc("zvol_dil", {
+        p_kod: kod, p_cislo: cislo, p_autor: autor, p_volba: volba, p_text: text,
+        ...(heslo ? { p_heslo: heslo } : {}),
+      });
+    }
+    delete chybaFormulare["#volba"];
+    await obnov();
+    if (demo) vykresli();
+  } catch (e) {
+    chybaFormulare["#volba"] = e.message;
+    vykresli();
+  }
 }
 
 // ── Komentáře ──────────────────────────────────────────────
@@ -1158,7 +1406,10 @@ function komentareHtml(cislo, nadpis) {
         <li class="komentar${k.odZadavatele ? "" : " od-autora"}">
           <div class="hlavicka">
             <span class="autor">${h(k.autor)}</span>
-            ${k.pozadujeZmenu
+            ${k.volba === "ok" ? `<span class="volba ok">✓ v pořádku · ${k.kolo ?? 1}. kolo</span>` : ""}
+            ${k.volba === "odeslani" ? `<span class="volba ok">${k.kolo ?? 1}. kolo odesláno</span>` : ""}
+            ${k.volba === "pripominka" ? `<span class="volba pripominka">připomínka · ${k.kolo ?? 1}. kolo</span>` : ""}
+            ${k.pozadujeZmenu && k.volba !== "pripominka"
               ? k.vyrizeno
                 ? `<span class="pozadavek vyrizeno">${k.vyrizeni === "zamitnuto" ? "Požadavek zamítnut" : "Vyřízeno novou revizí"}</span>`
                 : `<span class="pozadavek">Požaduje změnu · čeká na novou revizi</span>`
@@ -1169,19 +1420,32 @@ function komentareHtml(cislo, nadpis) {
         </li>`).join("")}</ul>`
     : `<p class="prazdno">${cislo ? "K tomuto dílu zatím nikdo nic nenapsal." : "Zatím žádné komentáře k projektu."}</p>`;
   const chyba = chybaFormulare[cislo] ? `<p class="chyba">${h(chybaFormulare[cislo])}</p>` : "";
+  // K dílu se píše jen volbou nahoře (jedna na kolo). Volně jde psát
+  // jen k celému projektu — dotazy během práce.
+  if (cislo) {
+    return `
+      <h3>${h(nadpis)}${seznam.length ? `<span>${seznam.length}</span>` : ""}${razeni}</h3>
+      ${polozky}`;
+  }
   return `
     <h3>${h(nadpis)}${seznam.length ? `<span>${seznam.length}</span>` : ""}${razeni}</h3>
+    <p class="vysvetleni">Sem mi můžete psát i místo e-mailu, ale jen dotazy ke stavu projektu.
+      Změny prosím pište jako připomínku u konkrétního dílu.</p>
     ${polozky}
-    <form class="formular" data-cislo="${h(cislo)}">
-      <textarea name="text" maxlength="4000" required
-        placeholder="${cislo ? `Poznámka k ${h(cislo)}` : "Poznámka k celému projektu"}"></textarea>
-      ${cislo
-        ? `<label class="zmena"><input type="checkbox" name="zmena">
-            Požaduji změnu výkresu — stažení dílu se pozastaví do nové revize</label>`
-        : ""}
+    <form class="formular" data-cislo="">
+      <textarea name="text" maxlength="4000"
+        placeholder="${koloOdeslane() || !dilyKola().length
+          ? "Dotaz nebo poznámka k celému projektu"
+          : "Dotaz k projektu, nebo komentář k odeslání kola, např. „Vše jsme prošli, prosím proveďte změny.“"}"></textarea>
       <div class="dole">
         <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
-        <button class="tl" type="submit">Odeslat komentář</button>
+        <button class="tl vedlejsi" type="submit">Odeslat komentář</button>
+        ${!koloOdeslane() && dilyKola().length
+          ? `<button class="tl" type="submit" data-akce="kolo"${koloJdeOdeslat() ? "" : " disabled"}
+              title="${koloJdeOdeslat()
+                ? `Uzavře ${kolo()}. kolo a pošle mi připomínky`
+                : "Nejdřív u každého dílu zvolte V pořádku, nebo připomínku"}">Odeslat připomínky</button>`
+          : ""}
       </div>
       ${chyba}
     </form>`;
@@ -1386,6 +1650,7 @@ function vykresliObsahDetailu() {
       <dl class="udaje">${udaje}</dl>
     </div>
     ${okoli}
+    ${volbaHtml(p)}
     <div class="sekce komentare">${komentareHtml(p.cislo, "Komentáře")}</div>`;
 
   const misto = $("detail").querySelector("[data-misto3d]");
@@ -1553,7 +1818,16 @@ function otevriNavod() {
     <h2>Jak to funguje</h2>
     <p>Tady vidíte průběžný stav konstrukce projektu — jen to, co je vydané.
       Rozpracované změny se objeví, až je vydám.</p>
+    <p><b>Přehled je jen pro vás</b> jako osobu, která má projekt na starosti. Odkaz a heslo
+      prosím nepřeposílejte. Za úpravy výkresů provedené mimo mě neodpovídám.</p>
     <ul>
+      <li><b>Kola připomínek</b> — až díly vydám, otevřete prosím každý a zvolte
+        <b>V pořádku</b>, nebo napište jednu připomínku. Volbu už pak nejde změnit.
+        Volba platí pro dané kolo. Hotové díly procházet nemusíte, připomínku k nim ale napsat můžete.</li>
+      <li><b>Odeslat připomínky</b> — až budete mít projité všechny díly, klikněte
+        dole v Komentářích k projektu na Odeslat připomínky, klidně s komentářem k celému projektu.
+        Nejdřív se ukáže náhled všech dílů s vašimi volbami ke kontrole, odešle se až po potvrzení. Potvrzením kolo uzavřete a já připomínky
+        zapracuji najednou. Další kolo začne, až díly znovu vydám.</li>
       <li><b>Přehled</b> — sestavy a díly s revizí a stavem. Kliknutím na řádek
         se otevře detail s obrázkem modelu, výkresem a 3D modelem k otáčení.</li>
       <li><b>Náhledy</b> mají vodoznak a slouží jen pro orientaci, nejsou platné pro výrobu.</li>
@@ -1562,10 +1836,10 @@ function otevriNavod() {
             vydanou revizi. Stáhnout vše nahoře stáhne všechny výkresy najednou jako ZIP.
             Každé stažení se zaznamená (jméno a čas).</li>`
         : ""}
-      <li><b>Komentáře</b> — k dílu v jeho detailu, k celému projektu dole na stránce.
-        Odpověď uvidíte na stejném místě.</li>
-      <li><b>Požaduji změnu</b> — zaškrtněte u komentáře k dílu, když je potřeba výkres upravit.
-        ${stazeni ? "Stažení dílu se pozastaví, dokud nevyjde nová revize." : "Díl se mi označí ke kontrole."}</li>
+      <li><b>Komentáře k projektu</b> — dole na stránce mi můžete psát i místo e-mailu,
+        ale jen dotazy ke stavu projektu. Odpověď uvidíte na stejném místě. Změny prosím pište
+        jako připomínku u konkrétního dílu.</li>
+      ${stazeni ? `<li><b>Díl s připomínkou</b> nejde stáhnout, dokud nevyjde nová revize.</li>` : ""}
       <li>Klidně mi pište i e-mailem.</li>
     </ul>
     <div class="tlacitka" style="margin-top:18px">
@@ -1830,7 +2104,7 @@ document.addEventListener("click", (e) => {
   if (e.target === $("pozadi")) return stiskNaPozadi ? zavriDetail() : undefined;
   if (e.target === $("okno")) return zavriOkno();
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-stahni], [data-stahni-vse], [data-razeni]"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-potvrd-kolo], [data-stahni], [data-stahni-vse], [data-razeni]"
   );
   if (!cil || cil.matches("form")) return;
   if (cil.matches("[data-razeni]")) return prepniRazeni();
@@ -1839,6 +2113,12 @@ document.addEventListener("click", (e) => {
   if (cil.matches("[data-obnovit]")) return obnovRucne();
   if (cil.matches("[data-navod]")) return otevriNavod();
   if (cil.matches("[data-zavrit-okno]")) return zavriOkno();
+  if (cil.matches("[data-potvrd-kolo]")) {
+    const formular = koloKPotvrzeni;
+    koloKPotvrzeni = null;
+    zavriOkno();
+    return formular && odesliKolo(formular);
+  }
   if (cil.matches("[data-stahni]")) return stahniVykres(cil.dataset.stahni, cil);
   if (cil.matches("[data-stahni-vse]")) return stahniVse(cil);
   if (cil.matches("[data-lupa3d]")) return otevriLupu3d();
@@ -1883,6 +2163,13 @@ document.addEventListener("submit", (e) => {
   }
   if (!e.target.matches(".formular")) return;
   e.preventDefault();
+  if (e.submitter?.dataset.akce === "kolo") return potvrdKolo(e.target);
+  if (e.target.matches("[data-volba-dilu]")) {
+    // Enter v poli jména bez tlačítka = připomínka, když je text, jinak nic.
+    const volba = e.submitter?.dataset.volba || (e.target.text.value.trim() ? "pripominka" : "");
+    if (volba) zvolDil(e.target, volba);
+    return;
+  }
   odesliKomentar(e.target);
 });
 
@@ -1942,6 +2229,8 @@ function ukazkovaData() {
     nazev: "Ukázkový projekt",
     aktualizovano: new Date().toISOString(),
     povolitStazeni: true,
+    kolo: 1,
+    koloOdeslano: null,
     vykresy: [
       { cislo: "S-0001", revize: "", soubor: "S-0001.pdf" },
       { cislo: "D-0001", revize: "", soubor: "D-0001.pdf" },
@@ -1972,8 +2261,9 @@ function ukazkovaData() {
       ],
     },
     komentare: [
-      { id: "1", cislo: "D-0002", autor: "Ing. Vedoucí", text: "Proč zkrácení o 20 mm? Nekoliduje to s podpěrou?", odZadavatele: true, vytvoreno: "2026-09-29T15:02:00Z", pozadujeZmenu: true, vyrizeno: null },
+      { id: "1", cislo: "D-0002", autor: "Ing. Vedoucí", text: "Proč zkrácení o 20 mm? Nekoliduje to s podpěrou?", odZadavatele: true, vytvoreno: "2026-09-29T15:02:00Z", pozadujeZmenu: true, vyrizeno: null, kolo: 1, volba: "pripominka" },
       { id: "2", cislo: "D-0002", autor: "Jan Hrnek", text: "Nekoliduje, podpěra se posunula taky (S-0001).", odZadavatele: false, vytvoreno: "2026-09-29T16:40:00Z" },
+      { id: "4", cislo: "D-0001", autor: "Ing. Vedoucí", text: "V pořádku", odZadavatele: true, vytvoreno: "2026-09-29T15:10:00Z", kolo: 1, volba: "ok" },
       { id: "3", cislo: "", autor: "Ing. Vedoucí", text: "Celkově dobré, rám prosím do pátku ke kontrole.", odZadavatele: true, vytvoreno: "2026-09-28T09:15:00Z" },
     ],
   };
