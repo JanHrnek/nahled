@@ -742,20 +742,178 @@ footer {
   .karta { padding: 16px 12px; }
   footer { padding: 16px 16px 32px; }
 }
+
+/* ── Vzhled B (2026-11): prohlížeč technické dokumentace ─────
+   Vlevo tmavý panel s projektem, stavem zakázky a stromem dílů, vpravo
+   přehled nebo detail dílu přímo na stránce (ne v okně). Na telefonu je
+   panel vysouvací. Návrh: docs/navrhy-webvieweru/varianta-b.html. */
+.aplikace { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: 100vh; }
+body.bez-panelu .aplikace { grid-template-columns: minmax(0, 1fr); }
+body.bez-panelu .panel, body.bez-panelu .mob-hlava { display: none; }
+.hlavni { min-width: 0; display: flex; flex-direction: column; }
+.hlavni main, .hlavni footer { width: 100%; }
+/* S panelem lišta nahoře chybí — značka je v panelu. */
+body:not(.bez-panelu) .lista { display: none; }
+
+.panel {
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: var(--akcent); color: #c9d5df; font-size: 14px; line-height: 1.45;
+}
+.panel .znacka-panelu { display: flex; align-items: flex-start; padding: 20px 22px 14px; }
+.panel .znacka-panelu b { display: block; color: #fff; font-size: 16px; font-weight: 900; letter-spacing: -0.02em; }
+.panel .znacka-panelu span { font-size: 12px; color: #8ea2b3; }
+.panel .zavrit-panel { display: none; margin-left: auto; }
+.panel .projekt-panelu { padding: 2px 22px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.panel .projekt-panelu .kod { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #8ea2b3; }
+.panel .projekt-panelu .nazev { margin-top: 2px; color: #fff; font-size: 18px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; }
+.stav-panelu {
+  margin-top: 14px; padding: 10px 12px; border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.07); font-size: 12px; color: #b3c2cf;
+}
+.stav-panelu b { display: block; margin-bottom: 1px; color: #fff; font-size: 13px; font-weight: 700; }
+.stav-panelu .ukazatel { height: 3px; margin-top: 8px; background: rgba(255, 255, 255, 0.15); }
+.stav-panelu .ukazatel div { background: #fff; }
+.panel .na-prehled {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 10px;
+  border: 0; background: none; padding: 9px 22px; text-align: left; color: #c9d5df; font-size: 13px; font-weight: 500;
+}
+.panel .na-prehled:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+.panel .na-prehled.ano { background: rgba(255, 255, 255, 0.1); box-shadow: inset 3px 0 0 #fff; color: #fff; }
+.strom { flex: 1; overflow: auto; padding: 4px 0 12px; }
+.strom .nadpis-stromu {
+  padding: 14px 22px 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #7489a0;
+}
+.polozka-stromu {
+  display: grid; grid-template-columns: 72px minmax(0, 1fr) 12px; gap: 8px; align-items: center;
+  width: 100%; border: 0; background: none; padding: 7px 22px; text-align: left; color: #c9d5df; font-size: 13px;
+}
+.polozka-stromu:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+.polozka-stromu.ano { background: rgba(255, 255, 255, 0.1); box-shadow: inset 3px 0 0 #fff; color: #fff; }
+.polozka-stromu.vnorena { padding-left: 34px; grid-template-columns: 60px minmax(0, 1fr) 12px; }
+.polozka-stromu.mimo { opacity: 0.5; }
+.polozka-stromu .c { color: #fff; font-weight: 700; font-variant-numeric: tabular-nums; }
+.polozka-stromu .p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tecka { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #6f849a; }
+.tecka.ok { background: #6fcf97; border-color: #6fcf97; }
+.tecka.pripominka { background: #f28b82; border-color: #f28b82; }
+.tecka.hotovo { background: #6f849a; border-color: #6f849a; }
+.tecka.zapracovano { background: none; border-color: #6fcf97; }
+.pata-panelu { display: grid; gap: 8px; padding: 14px 22px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.pata-panelu .tl { width: 100%; background: #fff; color: var(--akcent); border-color: #fff; }
+.pata-panelu .tl:hover:not(:disabled) { background: #e8eef3; border-color: #e8eef3; }
+.pata-panelu .tl:disabled { opacity: 0.4; }
+.pata-panelu .odkaz-panelu {
+  border: 0; background: none; padding: 4px 0; color: #8ea2b3; font-size: 13px; text-align: left;
+}
+.pata-panelu .odkaz-panelu:hover { color: #fff; }
+
+/* Přehled projektu vpravo */
+.hlavni main { max-width: 1200px; margin: 0; padding: 36px 40px 16px; }
+.hlavni footer { max-width: 1200px; margin: 0; padding: 16px 40px 40px; }
+.kroky { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 18px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--text-3); }
+.kroky li { display: flex; align-items: center; gap: 8px; }
+.kroky i {
+  width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--pole);
+  display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 700;
+}
+.kroky .hotovo { color: var(--text-2); }
+.kroky .hotovo i { background: var(--pole); border-color: var(--pole); color: #fff; }
+.kroky .ted { color: var(--text); font-weight: 700; }
+.kroky .ted i { background: var(--akcent); border-color: var(--akcent); color: #fff; }
+.hlavni .projekt { margin-bottom: 24px; }
+.stav-zakazky b { font-size: 16px; }
+.stav-zakazky p { margin: 6px 0 0; font-size: 14px; color: var(--text-2); }
+
+/* Detail dílu na stránce */
+.detail.vlozeny {
+  width: 100%; max-width: 1400px; max-height: none; overflow: visible;
+  border: 0; border-radius: 0; background: none; box-shadow: none;
+}
+.vlozeny .hlava {
+  position: sticky; top: 0; z-index: 2; align-items: center; flex-wrap: wrap;
+  padding: 14px 32px; background: var(--plocha); border-bottom: 1px solid var(--okraj);
+}
+.vlozeny .hlava .titul-dilu { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.vlozeny .hlava .cislo { font-size: 18px; }
+.vlozeny .hlava .popis { margin: 0; font-size: 16px; font-weight: 700; }
+.vlozeny .hlava .rev { font-size: 13px; color: var(--text-3); }
+.vlozeny .hlava .navigace { display: flex; gap: 6px; margin-left: auto; }
+.vlozeny .hlava .navigace .krizek { width: auto; padding: 0 10px; font-size: 13px; font-weight: 500; }
+.vlozeny .telo { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 0; padding: 0; }
+.vlozeny .levy {
+  width: auto; padding: 20px 24px; border-right: 1px solid var(--okraj);
+  background: #e9edf1; background-image: radial-gradient(#d3dbe2 1px, transparent 1px); background-size: 16px 16px;
+}
+.vlozeny .ramecek { aspect-ratio: auto; height: min(74vh, 62vw); box-shadow: 0 6px 24px rgba(16, 20, 24, 0.12); border: 0; }
+.vlozeny .prepinac { max-width: 360px; margin: 14px auto 0; }
+.vlozeny .pravy { padding: 20px; background: var(--plocha); }
+.vlozeny .pravy .volba-dilu { margin: 0 0 16px; }
+.vlozeny dl.udaje { font-size: 13px; }
+.vlozeny .udaj dt { width: 96px; }
+.vlozeny .okoli, .vlozeny .sekce { padding: 20px 32px; background: var(--plocha); }
+.vlozeny .stazeni { justify-content: center; }
+
+.mob-hlava { display: none; }
+.krizek-panelu {
+  width: 38px; height: 38px; border: 0; border-radius: var(--radius); flex: none;
+  background: rgba(255, 255, 255, 0.1); color: #fff; display: grid; place-items: center;
+}
+.krizek-panelu svg { width: 18px; height: 18px; }
+
+@media (max-width: 900px) {
+  .vlozeny .telo { grid-template-columns: 1fr; }
+  .vlozeny .levy { border-right: 0; padding: 12px; }
+  /* Rámeček podle obrázku (A4 na výšku i A3 na šířku); 3D potřebuje výšku. */
+  .vlozeny .ramecek { height: auto; aspect-ratio: auto; min-height: 160px; }
+  .vlozeny .ramecek img { position: static; height: auto; }
+  .vlozeny .ramecek:has(.misto3d) { aspect-ratio: 1; }
+}
+@media (max-width: 760px) {
+  .aplikace { display: block; }
+  .panel {
+    position: fixed; inset: 0; z-index: 15; height: auto;
+    transform: translateX(-100%); transition: transform 0.22s ease;
+  }
+  body.panel-otevreny .panel { transform: none; }
+  body.panel-otevreny { overflow: hidden; }
+  .panel .zavrit-panel { display: grid; }
+  .polozka-stromu { padding: 11px 22px; font-size: 14px; grid-template-columns: 80px minmax(0, 1fr) 12px; }
+  .polozka-stromu.vnorena { padding-left: 36px; grid-template-columns: 66px minmax(0, 1fr) 12px; }
+  .mob-hlava {
+    display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 5;
+    padding: 10px 16px; background: var(--akcent); color: #fff;
+  }
+  .mob-hlava .kod { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #8ea2b3; }
+  .mob-hlava .nazev { font-size: 15px; font-weight: 700; line-height: 1.2; }
+  .mob-hlava .stav-mob { font-size: 12px; color: #b3c2cf; }
+  .hlavni main { padding: 24px 16px 12px; }
+  .hlavni footer { padding: 12px 16px 32px; }
+  .vlozeny .hlava { top: 58px; padding: 10px 16px; }
+  .vlozeny .hlava .navigace { width: 100%; margin-left: 0; }
+  .vlozeny .hlava .navigace .krizek { flex: 1; height: 36px; }
+  .vlozeny .pravy, .vlozeny .okoli, .vlozeny .sekce { padding: 16px; }
+}
 </style>
 </head>
-<body>
-<div class="lista">
-  <div class="co"><b>Jan Hrnek</b><span>náhled projektu</span></div>
-  <button class="navod" data-navod>Jak to funguje</button>
-</div>
-<main id="obsah"><p class="hlaska">Načítám…</p></main>
-<footer id="paticka" hidden>
-  Náhled stavu konstrukce. Obrázky jsou jen pro orientaci a nejsou platné pro
-  výrobu. Aktualizuje se samo zhruba každou minutu.
-</footer>
-<div id="pozadi" class="pozadi" hidden>
-  <aside id="detail" class="detail" aria-modal="true" role="dialog"></aside>
+<body class="bez-panelu">
+<div class="aplikace">
+  <!-- Vlevo projekt, stav zakázky a strom dílů; na telefonu vysouvací. -->
+  <nav id="panel" class="panel" aria-label="Díly projektu"></nav>
+  <div class="hlavni">
+    <div id="mob-hlava" class="mob-hlava"></div>
+    <div class="lista">
+      <div class="co"><b>Jan Hrnek</b><span>technická dokumentace</span></div>
+      <button class="navod" data-navod>Jak to funguje</button>
+    </div>
+    <main id="obsah"><p class="hlaska">Načítám…</p></main>
+    <section id="detail" class="detail vlozeny" hidden></section>
+    <footer id="paticka" hidden>
+      Náhled stavu konstrukce. Obrázky slouží ke kontrole a nejsou platné pro
+      výrobu. Aktualizuje se samo zhruba každou minutu.
+    </footer>
+  </div>
 </div>
 <div id="lupa" class="lupa" hidden></div>
 <div id="okno" class="pozadi" hidden>
@@ -789,17 +947,16 @@ const SKUPINY = [
 ];
 
 const kod = decodeURIComponent(location.hash.slice(1)).trim();
-const demo = kod === "demo";
+// #demo = prověřený klient, #demo-novy = nový klient (výkresy pro informaci).
+const demo = kod === "demo" || kod === "demo-novy";
 let nahled = null;        // odpověď funkce `nahled`
 let prvniVykresleni = true; // řádky naskakují jen poprvé, ne při každém obnovení
 let nacitam = false;      // běží ruční obnovení
 let animujNahled = false; // přepnutí Model/Výkres — obrázek se prolne
-let casovacZavreni = 0;
 let otevrene = null;      // číslo otevřeného dílu
 let zobrazeni = "model";  // co ukazuje náhled v detailu
 let chybaFormulare = {};  // podle čísla
 let rozbaleno = {};       // rozbalená historie revizí / starší vydání v detailu
-let stiskNaPozadi = false; // detail zavře jen klik, který na pozadí i začal
 const PLATNOST_HESLA_MS = 3 * 60 * 60 * 1000; // jak dlouho platí přihlášení
 let hesloPlatiDo = 0;       // do kdy platí zapamatované heslo (ms)
 let heslo = ulozeneHeslo(); // heslo sdílení (má-li ho), zapamatované z minula
@@ -1035,15 +1192,130 @@ function vykresK(cislo) {
   return (nahled.vykresy ?? []).find((v) => v.cislo === cislo) || null;
 }
 
+// ── Stav zakázky ───────────────────────────────────────────
+// Odvozený z dat: kolo, volby a režim, který posílá appka (`rezim.prisny` =
+// nový klient, výkresy pro informaci; `rezim.uvolneno` = Honza je po
+// zaplacení uvolnil). Plán: docs/plan-vydani-a-platby.md.
+
+const KROKY = ["Rozpracováno", "Připomínky", "Schváleno", "Ke stažení"];
+
+/** Připomínky v aktuálním kole (odeslané i koncepty). */
+function pripominkyKola() {
+  return dilySouhrnu().filter((p) => volbaDilu(p.cislo)?.volba === "pripominka");
+}
+
+/** `krok` = index do KROKY, `text` = jedna věta, `pod` = podrobnost. */
+function stavZakazky() {
+  const rezim = nahled?.data?.rezim ?? {};
+  const kStazeni = Boolean(nahled?.povolitStazeni);
+  if (!polozky().length) return { krok: 0, text: "Rozpracováno", pod: "Díly se objeví, až je vydám." };
+  const { hotovo, celkem } = prosleDily();
+  if (celkem && !koloOdeslane()) {
+    return {
+      krok: 1, text: "Čeká na vaše připomínky",
+      pod: `${kolo()}. kolo · prošli jste ${hotovo} z ${celkem}`, hotovo, celkem,
+    };
+  }
+  const nevyrizene = koloOdeslane() && pripominkyKola().some((p) => !volbaDilu(p.cislo)?.vyrizeno);
+  if (nevyrizene) return { krok: 1, text: "Zapracovávám připomínky", pod: `${kolo()}. kolo odesláno ${kdy(nahled.koloOdeslano)}` };
+  if (kStazeni) return { krok: 3, text: "Výkresy ke stažení", pod: "Aktuální vydané revize jsou u každého dílu." };
+  if (rezim.prisny) {
+    return { krok: 2, text: "Schváleno, čeká na úhradu", pod: "Výkresy pro výrobu budou ke stažení po úhradě faktury." };
+  }
+  return { krok: 2, text: "Schváleno", pod: "Dokumentace je odsouhlasená." };
+}
+
+function krokyHtml(stav) {
+  return `<ol class="kroky">${KROKY.map((t, i) => `<li class="${i < stav.krok ? "hotovo" : i === stav.krok ? "ted" : ""}">
+    <i>${i < stav.krok ? "✓" : i + 1}</i>${t}</li>`).join("")}</ol>`;
+}
+
+// ── Panel vlevo ────────────────────────────────────────────
+
+/** Tečka u dílu ve stromu: volba v kole, hotový, nebo ještě neprošlý. */
+function teckaDilu(p) {
+  if (mimoKola(p)) return `<span></span>`;
+  const v = volbaDilu(p.cislo);
+  if (v?.volba === "ok") return `<span class="tecka ok" title="V pořádku"></span>`;
+  if (v?.volba === "pripominka" && v.vyrizeno) return `<span class="tecka zapracovano" title="Připomínka zapracovaná"></span>`;
+  if (v?.volba === "pripominka") return `<span class="tecka pripominka" title="Připomínka"></span>`;
+  if (p.stav === "hotovy") return `<span class="tecka hotovo" title="Hotový"></span>`;
+  return `<span class="tecka" title="${koloOdeslane() ? "" : "Ještě neprošlý"}"></span>`;
+}
+
+const IKONA_MENU = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
+
+function vykresliPanel() {
+  const vse = polozky();
+  const stav = stavZakazky();
+  const strom = SKUPINY.map(([skupina, nadpis]) => {
+    const radky = vse.filter((p) => p.skupina === skupina);
+    if (!radky.length) return "";
+    return `<div class="nadpis-stromu">${nadpis}</div>${radky.map((p) => `
+      <button class="polozka-stromu${p.cislo === otevrene ? " ano" : ""}${mimoKola(p) ? " mimo" : ""}"
+        data-cislo="${h(p.cislo)}" title="${h(p.cislo)} ${h(p.popis || "")}">
+        <span class="c">${h(p.cislo)}</span><span class="p">${h(p.popis) || "bez popisu"}</span>${teckaDilu(p)}
+      </button>`).join("")}`;
+  }).join("");
+  const odeslat = !koloOdeslane() && dilyKola().length
+    ? `<button class="tl" data-k-odeslani${koloJdeOdeslat() ? "" : ` title="Nejdřív u každého dílu zvolte V pořádku, nebo připomínku"`}>${
+        koloJdeOdeslat() && !pripominkyKola().length ? "Schválit dokumentaci" : "Odeslat připomínky"}</button>`
+    : "";
+  $("panel").innerHTML = `
+    <div class="znacka-panelu">
+      <div><b>Jan Hrnek</b><span>technická dokumentace</span></div>
+      <button class="krizek-panelu zavrit-panel" data-zavrit-panel aria-label="Zavřít seznam">×</button>
+    </div>
+    <div class="projekt-panelu">
+      <div class="kod">PROJEKT ${h(nahled.projekt)}</div>
+      <div class="nazev">${h(nahled.nazev || nahled.projekt)}</div>
+      <div class="stav-panelu"><b>${h(stav.text)}</b>${h(stav.pod || "")}${
+        stav.celkem ? `<div class="ukazatel"><div style="width:${Math.round((stav.hotovo / stav.celkem) * 100)}%"></div></div>` : ""}</div>
+    </div>
+    <button class="na-prehled${otevrene ? "" : " ano"}" data-prehled>Přehled projektu</button>
+    <div class="strom">${strom}</div>
+    <div class="pata-panelu">${odeslat}
+      <button class="odkaz-panelu" data-navod>Jak to funguje</button>
+    </div>`;
+  $("mob-hlava").innerHTML = `
+    <button class="krizek-panelu" data-otevri-panel aria-label="Seznam dílů">${IKONA_MENU}</button>
+    <div><div class="kod">PROJEKT ${h(nahled.projekt)}</div><div class="nazev">${h(nahled.nazev || nahled.projekt)}</div>
+      <div class="stav-mob">${h(stav.text)}${stav.celkem ? ` · ${stav.hotovo} z ${stav.celkem}` : ""}</div></div>`;
+}
+
+function otevriPanel() { document.body.classList.add("panel-otevreny"); }
+function zavriPanel() { document.body.classList.remove("panel-otevreny"); }
+
+/** „Odeslat připomínky" z panelu: přehled, formulář dole a rovnou souhrn. */
+function kOdeslani() {
+  zavriPanel();
+  if (otevrene) zavriDetail();
+  const formular = document.querySelector("#komentare-projektu form");
+  formular?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (!formular || !koloJdeOdeslat()) return;
+  if (!formular.autor.value.trim()) return formular.autor.focus();
+  potvrdKolo(formular);
+}
+
 // ── Přehled ────────────────────────────────────────────────
 
+/** Hláška nebo heslo místo přehledu: bez panelu a bez detailu. */
+function bezPrehledu() {
+  document.body.classList.add("bez-panelu");
+  zavriPanel();
+  $("detail").hidden = true;
+  $("obsah").hidden = false;
+}
+
 function zobrazHlasku(nadpis, text) {
+  bezPrehledu();
   $("obsah").innerHTML = `<div class="hlaska"><h1>${h(nadpis)}</h1><p>${h(text)}</p></div>`;
   $("paticka").hidden = true;
 }
 
 function zobrazHeslo(spatne) {
   cekaNaHeslo = true;
+  bezPrehledu();
   $("obsah").innerHTML = `
     <form class="hlaska heslo" id="heslo">
       <h1>Náhled je chráněný heslem</h1>
@@ -1086,19 +1358,15 @@ function zachovejRozepsane(kde, prekresli) {
 
 function vykresli() {
   zachovejRozepsane("#kolo", () => zachovejRozepsane("#komentare-projektu", vykresliPrehled));
+  vykresliPanel();
   if (otevrene) zachovejRozepsane("#detail", vykresliDetail);
 }
 
 function vykresliPrehled() {
   const vse = polozky();
   document.title = `${nahled.projekt} ${nahled.nazev || ""} — náhled`.trim();
-
-  const pocty = {};
-  for (const p of vse) pocty[stavDilu(p)] = (pocty[stavDilu(p)] || 0) + 1;
-  const souhrn = Object.keys(NAZVY_STAVU)
-    .filter((s) => pocty[s])
-    .map((s) => `<span class="stav ${s}">${NAZVY_STAVU[s]} <span class="pocet">${pocty[s]}</span></span>`)
-    .join("");
+  document.body.classList.remove("bez-panelu");
+  const stav = stavZakazky();
 
   // Při prvním načtení karty a řádky naskočí po sobě jako v appce.
   // Při obnovení každou minutu ne — to by stránka pořád poskakovala.
@@ -1135,9 +1403,9 @@ function vykresliPrehled() {
               title="Všechny vydané výkresy (aktuální revize) jako ZIP">${IKONA_STAZENI}Stáhnout vše</button>`
           : ""}
       </div>
+      ${krokyHtml(stav)}
     </section>
-    <div class="souhrn${anim ? " anim-fade" : ""}">${souhrn}</div>
-    ${koloHtml(anim)}
+    ${koloHtml(anim, stav)}
     ${kose || `<p class="hlaska">Projekt zatím nemá žádné díly.</p>`}
     <section class="karta komentare${anim ? " anim-karta" : ""}" id="komentare-projektu"${zpozdeni(80 + poradiKose * 70)}>
       ${komentareHtml("", "Komentáře k projektu")}
@@ -1226,15 +1494,22 @@ function znackaVolby(p) {
 }
 
 /** Pruh nahoře: kolo, kolik je projito, odeslání. */
-function koloHtml(anim) {
+function koloHtml(anim, stav = stavZakazky()) {
   const { hotovo, celkem } = prosleDily();
-  if (!celkem) return "";
-  if (koloOdeslane()) {
+  // Kolo neběží: karta se stavem zakázky (zapracování, schváleno, úhrada).
+  if (!celkem || koloOdeslane()) {
+    if (stav.krok === 0) return "";
+    const texty = {
+      "Zapracovávám připomínky": "Děkuji, připomínky zapracuji najednou. Další kolo začne, až díly znovu vydám.",
+      "Schváleno, čeká na úhradu": "Děkuji za schválení. Fakturu vám pošlu e-mailem. Po její úhradě tu budou výkresy pro výrobu ke stažení, s plným razítkem.",
+      "Výkresy ke stažení": "Výkresy pro výrobu stáhnete v detailu každého dílu, nebo všechny najednou tlačítkem Stáhnout vše nahoře.",
+      "Schváleno": "Děkuji, dokumentace je odsouhlasená.",
+    };
     return `
-      <section class="karta kolo odeslano${anim ? " anim-karta" : ""}">
-        <div class="kolo-hlavicka"><b>${kolo()}. kolo připomínek je odeslané</b>
-          <span>${kdy(nahled.koloOdeslano)}</span></div>
-        <p>Děkuji, připomínky zapracuji najednou. Další kolo začne, až díly znovu vydám.</p>
+      <section class="karta kolo odeslano stav-zakazky${anim ? " anim-karta" : ""}">
+        <div class="kolo-hlavicka"><b>${h(stav.text)}</b>${
+          texty[stav.text] && stav.krok !== 1 ? "" : `<span>${h(stav.pod || "")}</span>`}</div>
+        ${texty[stav.text] ? `<p>${texty[stav.text]}</p>` : ""}
       </section>`;
   }
   return `
@@ -1244,9 +1519,9 @@ function koloHtml(anim) {
       <div class="ukazatel"><div style="width:${Math.round((hotovo / celkem) * 100)}%"></div></div>
       <p>Otevřete každý díl a zvolte <b>V pořádku</b>, nebo napište jednu připomínku.
         Volby se ukládají jen jako koncept: nic mi neodejde a do odeslání je můžete měnit.
-        Až budete mít vše projité, klikněte dole v <b>Komentářích k projektu</b> na <b>Odeslat připomínky</b>.
-        Nejdřív se vám ukáže náhled všech dílů s vašimi volbami ke kontrole a odešle se až po potvrzení.
-        Potvrzením kolo uzavřete a já připomínky zapracuji najednou.</p>
+        Až budete mít vše projité, klikněte na <b>Odeslat připomínky</b> (v seznamu dílů nebo dole
+        v Komentářích k projektu). Nejdřív se vám ukáže souhrn všech dílů s vašimi volbami a odešle se
+        až po potvrzení. Když jsou všechny díly v pořádku, odesláním dokumentaci schvalujete.</p>
     </section>`;
 }
 
@@ -1276,7 +1551,8 @@ function potvrdKolo(formular) {
   const zapracovanych = dily.filter((p) => zapracovana(volbaDilu(p.cislo))).length;
   const radky = dily.map((p) => {
     const v = volbaDilu(p.cislo);
-    return `<li><span class="cislo">${cislo(p.cislo)}</span> ${h(p.popis || "")}<br>${
+    const rev = p.revize ? `rev. ${h(p.revize)}` : "originál";
+    return `<li><span class="cislo">${cislo(p.cislo)}</span> ${h(p.popis || "")} <span class="tlumene" style="font-style:normal">· ${rev}</span><br>${
       zapracovana(v)
         ? `<span class="volba zapracovano">✓ zapracováno</span> ${h(v.text)}`
         : v?.volba === "pripominka"
@@ -1284,7 +1560,20 @@ function potvrdKolo(formular) {
           : `<span class="volba ok">✓ v pořádku</span>`}</li>`;
   }).join("");
   const vPoradku = dily.length - pripominek - zapracovanych;
-  otevriOkno(`
+  // Všechno v pořádku = schválení dokumentace v uvedených revizích.
+  const schvaleni = pripominek === 0 && zapracovanych === 0;
+  otevriOkno(schvaleni
+    ? `
+    <h2>Schválit dokumentaci?</h2>
+    <p>Všech ${vPoradku} ${sklonuj(vPoradku, "díl je", "díly jsou", "dílů je")} v pořádku. Odesláním
+      schvalujete dokumentaci v revizích uvedených níže. Po odeslání už volby nejde změnit.</p>
+    <ul class="souhrn-kola">${radky}</ul>
+    ${text ? `<p><b>Komentář k projektu:</b> ${h(text)}</p>` : ""}
+    <div class="tlacitka" style="margin-top:18px">
+      <button class="tl vedlejsi" data-zavrit-okno>Zpět</button>
+      <button class="tl" data-potvrd-kolo>Schvaluji a odesílám</button>
+    </div>`
+    : `
     <h2>Odeslat ${kolo()}. kolo připomínek?</h2>
     <p>${vPoradku} ${sklonuj(vPoradku, "díl", "díly", "dílů")} v pořádku,
       ${pripominek} ${sklonuj(pripominek, "připomínka", "připomínky", "připomínek")}${
@@ -1333,7 +1622,7 @@ async function odesliKolo(formular) {
     delete chybaFormulare[""];
     formular.text.value = "";
     await obnov();
-    oznam("Připomínky jsou odeslané. Děkuji.");
+    oznam(stavZakazky().krok >= 2 ? "Dokumentace je schválená. Děkuji." : "Připomínky jsou odeslané. Děkuji.");
   } catch (e) {
     chybaFormulare[""] = e.message;
     vykresli();
@@ -1515,7 +1804,8 @@ function komentareHtml(cislo, nadpis) {
           ? `<button class="tl" type="submit" data-akce="kolo"${koloJdeOdeslat() ? "" : " disabled"}
               title="${koloJdeOdeslat()
                 ? `Uzavře ${kolo()}. kolo a pošle mi připomínky`
-                : "Nejdřív u každého dílu zvolte V pořádku, nebo připomínku"}">Odeslat připomínky</button>`
+                : "Nejdřív u každého dílu zvolte V pořádku, nebo připomínku"}">${
+              koloJdeOdeslat() && !pripominkyKola().length ? "Odeslat: vše v pořádku, schvaluji" : "Odeslat připomínky"}</button>`
           : ""}
       </div>
       ${chyba}
@@ -1557,50 +1847,44 @@ async function odesliKomentar(formular) {
 
 // ── Detail dílu ────────────────────────────────────────────
 
+/** Detail dílu na místě přehledu (vzhled B). Panel vlevo zůstává. */
 function otevriDetail(cislo) {
-  const pozadi = $("pozadi");
-  const uzOtevreny = !pozadi.hidden && !pozadi.classList.contains("zavira");
-  clearTimeout(casovacZavreni);
   otevrene = cislo;
   rozbaleno = {};
-  // Model má přednost jako v appce; výkres, jen když model chybí.
+  zavriPanel();
+  // Výkres má přednost — kvůli němu klient přišel; model, když výkres chybí.
   const nahledy = polozky().find((x) => x.cislo === cislo)?.nahledy || {};
-  zobrazeni = !nahledy.model && nahledy.vykres ? "vykres" : "model";
+  zobrazeni = nahledy.vykres ? "vykres" : "model";
   // Jiný díl = jiný komentář; rozepsaný text z předchozího sem nepatří.
-  $("detail").innerHTML = "";
+  const detail = $("detail");
+  detail.innerHTML = "";
+  $("obsah").hidden = true;
+  detail.hidden = false;
   vykresliDetail();
-  $("detail").scrollTop = 0;
-
-  pozadi.classList.remove("zavira");
-  if (uzOtevreny) {
-    // Jiný díl ve stejné kartě (proklik na sousední číslo) — karta zůstane,
-    // jen se prolne obsah. Třída pryč hned po animaci, jinak by se prolínal
-    // i při každém obnovení dat.
-    const detail = $("detail");
-    detail.classList.remove("prepnuti");
-    void detail.offsetWidth;
-    detail.classList.add("prepnuti");
-    setTimeout(() => detail.classList.remove("prepnuti"), 320);
-  } else {
-    pozadi.classList.remove("otvira");
-    void pozadi.offsetWidth;
-    pozadi.classList.add("otvira");
-  }
+  vykresliPanel();
+  window.scrollTo(0, 0);
+  // Přepnutí dílu se jen prolne. Třída pryč po animaci, jinak by se
+  // prolínal i při každém obnovení dat.
+  detail.classList.remove("prepnuti");
+  void detail.offsetWidth;
+  detail.classList.add("prepnuti");
+  setTimeout(() => detail.classList.remove("prepnuti"), 320);
 }
 
-/** Karta odejde, nezmizí naráz — stejně jako v appce. */
+/** Zpět na přehled projektu. */
 function zavriDetail() {
+  if (!otevrene && $("detail").hidden) return;
   otevrene = null;
-  document.body.style.overflow = "";
-  const pozadi = $("pozadi");
-  if (pozadi.hidden) return;
-  pozadi.classList.remove("otvira");
-  pozadi.classList.add("zavira");
-  clearTimeout(casovacZavreni);
-  casovacZavreni = setTimeout(() => {
-    pozadi.hidden = true;
-    pozadi.classList.remove("zavira");
-  }, 280);
+  $("detail").hidden = true;
+  $("obsah").hidden = false;
+  if (nahled) vykresliPanel();
+}
+
+/** Sousední díl v pořadí stromu (sestavy, podsestavy, díly). */
+function sousedniDil(posun) {
+  const poradi = SKUPINY.flatMap(([s]) => polozky().filter((p) => p.skupina === s)).map((p) => p.cislo);
+  const i = poradi.indexOf(otevrene);
+  return i < 0 ? null : poradi[i + posun] ?? null;
 }
 
 function vykresliDetail() {
@@ -1700,36 +1984,43 @@ function vykresliObsahDetailu() {
       </div>`
     : "";
 
+  const predchozi = sousedniDil(-1);
+  const dalsi = sousedniDil(1);
   $("detail").innerHTML = `
     <div class="hlava">
-      <div>
-        <div class="cislo">${h(p.cislo)}</div>
-        <p class="popis${p.popis ? "" : " tlumene"}">${h(p.popis) || "bez popisu"}</p>
+      <div class="titul-dilu">
+        <span class="cislo">${h(p.cislo)}</span>
+        <span class="popis${p.popis ? "" : " tlumene"}">${h(p.popis) || "bez popisu"}</span>
+        <span class="rev">${p.revize ? `rev. ${h(p.revize)}` : "originál"}${p.vydani?.[0] ? ` · vydáno ${h(p.vydani[0].kdy)}` : ""}</span>
       </div>
-      <button class="krizek" data-zavrit aria-label="Zavřít">×</button>
+      <div class="navigace">
+        <button class="krizek" data-zavrit title="Zpět na přehled projektu">← Přehled</button>
+        <button class="krizek" ${predchozi ? `data-cislo="${h(predchozi)}"` : "disabled"} title="Předchozí díl" aria-label="Předchozí díl">←</button>
+        <button class="krizek" ${dalsi ? `data-cislo="${h(dalsi)}"` : "disabled"} title="Další díl" aria-label="Další díl">→</button>
+      </div>
     </div>
     <div class="telo">
       <div class="levy">
         <div class="ramecek">${obraz}</div>
         <div class="prepinac">
-          <button data-zobrazeni="model" class="${zobrazeni === "model" ? "aktivni" : ""}${nahledy.model ? "" : " chybi"}">Model</button>
           <button data-zobrazeni="vykres" class="${zobrazeni === "vykres" ? "aktivni" : ""}${nahledy.vykres ? "" : " chybi"}">Výkres</button>
+          <button data-zobrazeni="model" class="${zobrazeni === "model" ? "aktivni" : ""}${nahledy.model ? "" : " chybi"}">Model</button>
           ${nahledy.model3d ? `<button data-zobrazeni="3d" class="${zobrazeni === "3d" ? "aktivni" : ""}">3D</button>` : ""}
         </div>
         ${stazeniHtml(p)}
       </div>
-      <dl class="udaje">${udaje}</dl>
+      <div class="pravy">
+        ${volbaHtml(p)}
+        <dl class="udaje">${udaje}</dl>
+      </div>
     </div>
     ${okoli}
-    ${volbaHtml(p)}
     <div class="sekce komentare">${komentareHtml(p.cislo, "Komentáře")}</div>`;
 
   const misto = $("detail").querySelector("[data-misto3d]");
   if (misto) vlozProhlizec(misto, adresaObrazku(nahledy.model3d), vodoznakDilu(p));
 
   animujNahled = false;
-  $("pozadi").hidden = false;
-  document.body.style.overflow = "hidden";
 }
 
 /** Tlačítko na stažení vydaného PDF — nebo proč teď nejde. */
@@ -1901,9 +2192,12 @@ function otevriNavod() {
         dole v Komentářích k projektu na Odeslat připomínky, klidně s komentářem k celému projektu.
         Nejdřív se ukáže náhled všech dílů s vašimi volbami ke kontrole, odešle se až po potvrzení. Potvrzením kolo uzavřete a já připomínky
         zapracuji najednou. Další kolo začne, až díly znovu vydám.</li>
-      <li><b>Přehled</b> — sestavy a díly s revizí a stavem. Kliknutím na řádek
-        se otevře detail s obrázkem modelu, výkresem a 3D modelem k otáčení.</li>
-      <li><b>Náhledy</b> mají vodoznak a slouží jen pro orientaci, nejsou platné pro výrobu.</li>
+      <li><b>Díly</b> jsou v seznamu vlevo (na telefonu pod tlačítkem menu). Kliknutím se otevře
+        detail s výkresem, obrázkem modelu a 3D modelem k otáčení; šipkami přejdete na další díl.</li>
+      <li><b>Náhledy</b> mají vodoznak a slouží ke kontrole, nejsou platné pro výrobu.${
+        nahled?.data?.rezim?.prisny && !stazeni
+          ? " Razítko výkresů je do úhrady faktury zakryté, výkresy pro výrobu pak budou ke stažení tady."
+          : ""}</li>
       ${stazeni
         ? `<li><b>Stažení výkresu</b> — v detailu dílu tlačítko Stáhnout PDF stáhne aktuální
             vydanou revizi. Stáhnout vše nahoře stáhne všechny výkresy najednou jako ZIP.
@@ -2174,12 +2468,19 @@ async function otevriLupu3d() {
 document.addEventListener("click", (e) => {
   // Klik vedle karty (na ztmavené pozadí) detail zavře — jen když tam
   // i začal, ne když otáčení 3D modelu skončí kurzorem mimo kartu.
-  if (e.target === $("pozadi")) return stiskNaPozadi ? zavriDetail() : undefined;
   if (e.target === $("okno")) return zavriOkno();
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-potvrd-kolo], [data-zrus-volbu], [data-stahni], [data-stahni-vse], [data-razeni]"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-potvrd-kolo], [data-zrus-volbu], [data-stahni], [data-stahni-vse], [data-razeni], [data-prehled], [data-otevri-panel], [data-zavrit-panel], [data-k-odeslani]"
   );
   if (!cil || cil.matches("form")) return;
+  if (cil.matches("[data-otevri-panel]")) return otevriPanel();
+  if (cil.matches("[data-zavrit-panel]")) return zavriPanel();
+  if (cil.matches("[data-k-odeslani]")) return kOdeslani();
+  if (cil.matches("[data-prehled]")) {
+    zavriPanel();
+    zavriDetail();
+    return window.scrollTo(0, 0);
+  }
   if (cil.matches("[data-razeni]")) return prepniRazeni();
   if (cil.matches("#lupa img")) return $("lupa").classList.toggle("plna");
   if (cil.matches("[data-zavrit-lupu]")) return zavriLupu();
@@ -2215,10 +2516,6 @@ document.addEventListener("click", (e) => {
   if (cil.dataset.cislo) otevriDetail(cil.dataset.cislo);
 });
 
-document.addEventListener("pointerdown", (e) => {
-  stiskNaPozadi = e.target === $("pozadi");
-});
-
 document.addEventListener("submit", (e) => {
   if (e.target.id === "heslo") {
     e.preventDefault();
@@ -2251,6 +2548,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!$("okno").hidden) zavriOkno();
   else if (!$("lupa").hidden) zavriLupu();
+  else if (document.body.classList.contains("panel-otevreny")) zavriPanel();
   else if (otevrene) zavriDetail();
 });
 
@@ -2302,7 +2600,7 @@ function ukazkovaData() {
     projekt: "H2600",
     nazev: "Ukázkový projekt",
     aktualizovano: new Date().toISOString(),
-    povolitStazeni: true,
+    povolitStazeni: kod !== "demo-novy",
     kolo: 1,
     koloOdeslano: null,
     vykresy: [
@@ -2313,6 +2611,7 @@ function ukazkovaData() {
     data: {
       verze: 1,
       zdroj: "solidworks",
+      rezim: { prisny: kod === "demo-novy", uvolneno: kod !== "demo-novy" },
       polozky: [
         { ...dil("SV-0001", "Rám stroje", "", "A", "keKontrole", false), skupina: "sestava",
           obsahuje: ["S-0001", "D-0003"], pouzitoV: [],
