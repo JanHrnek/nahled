@@ -517,6 +517,8 @@ footer { padding-left: 24px; padding-right: 24px; }
 }
 
 [hidden] { display: none !important; }
+body.okno-otevrene { overflow: hidden; }
+#okno .okno { overscroll-behavior: contain; }
 
 /* ── Stažení, požadavek na změnu, návod ──────────────────── */
 .lista .navod {
@@ -812,8 +814,10 @@ body:not(.bez-panelu) .lista { display: none; }
 .pata-panelu .napoveda-panelu:hover { background: rgba(255, 255, 255, 0.08); border-color: #fff; }
 .pata-panelu .napoveda-panelu svg { width: 18px; height: 18px; }
 /* Vysvětlivky značek v návodu (bílé okno, ne tmavý panel). */
-.legenda { display: grid; grid-template-columns: 22px 1fr; gap: 8px 10px; align-items: center; margin: 10px 0 0; font-size: 14px; color: var(--text-2); }
-.legenda .tecka { justify-self: center; }
+.legenda { display: grid; grid-template-columns: 22px 1fr; gap: 10px 10px; align-items: start; margin: 10px 0 0; font-size: 14px; color: var(--text-2); }
+.legenda .tecka { justify-self: center; margin-top: 7px; }
+.legenda .revize { margin-top: 2px; }
+.legenda b { color: var(--text); }
 .legenda .tecka:not(.ok):not(.pripominka):not(.zapracovano):not(.hotovo) { border-color: #9aabbb; }
 .legenda .revize { justify-self: center; }
 .okno h3 { margin: 18px 0 0; font-size: 15px; font-weight: 700; color: var(--text); }
@@ -2141,6 +2145,8 @@ let cekaNaJmeno = null; // vyřízení slibu z zjistiJmeno
 
 function otevriOkno(html) {
   const okno = $("okno");
+  // Stránka pod oknem se nesmí posouvat — kolečko posouvá jen okno.
+  document.body.classList.add("okno-otevrene");
   okno.querySelector(".okno").innerHTML = html;
   clearTimeout(casovacOkna);
   okno.classList.remove("zavira", "otvira");
@@ -2162,6 +2168,7 @@ function zavriOkno() {
   casovacOkna = setTimeout(() => {
     okno.hidden = true;
     okno.classList.remove("zavira");
+    document.body.classList.remove("okno-otevrene");
   }, 280);
 }
 
@@ -2217,19 +2224,38 @@ function otevriNavod() {
       ${stazeni ? `<li><b>Díl s připomínkou</b> nejde stáhnout, dokud nevyjde nová revize.</li>` : ""}
       <li>Klidně mi pište i e-mailem.</li>
     </ul>
-    <h3>Co znamenají značky</h3>
-    <p style="margin:4px 0 0">Tečka u dílu v seznamu dílů:</p>
+    <h3>Jak probíhá kontrola</h3>
+    <p style="margin:4px 0 0">Výkresy kontrolujete po kolech. Kolo začne tím, že vám díly vydám (zveřejním tady).
+      Vy každý díl otevřete a buď ho odsouhlasíte (<b>V pořádku</b>), nebo napíšete, co upravit (<b>připomínka</b>).
+      Až máte projité všechny díly, kolo odešlete. Já připomínky opravím, upravené výkresy vydám znovu a začne
+      další kolo. Takhle to jde, dokud nejsou všechny díly v pořádku.</p>
+    <p style="margin:8px 0 0"><b>Revize</b> je verze výkresu. První vydání je originál, každá další úprava
+      dostane písmeno: A, B, C… Když tedy u dílu uvidíte místo „A“ písmeno „B“, je to opravená verze.</p>
+
+    <h3>Tečky u dílů v seznamu</h3>
+    <p style="margin:4px 0 0">Ukazují, jak je na tom každý díl ve vaší kontrole.</p>
     <div class="legenda">
-      <span class="tecka"></span><span>ještě neprošlý — v tomto kole na něj čeká vaše volba</span>
-      <span class="tecka ok"></span><span>V pořádku — v tomto kole jste ho odsouhlasili</span>
-      <span class="tecka pripominka"></span><span>připomínka — napsali jste, co upravit</span>
-      <span class="tecka zapracovano"></span><span>připomínka je zapracovaná v nové revizi</span>
-      <span class="tecka hotovo"></span><span>hotový díl — procházet ho nemusíte</span>
+      <span class="tecka"></span><span><b>Prázdný kroužek: čeká na vás.</b> Díl jste v tomto kole ještě neotevřeli.
+        Otevřete ho a zvolte V pořádku, nebo napište připomínku.</span>
+      <span class="tecka ok"></span><span><b>Zelená: v pořádku.</b> Díl jste odsouhlasili. Nic dalšího dělat nemusíte.</span>
+      <span class="tecka pripominka"></span><span><b>Červená: připomínka.</b> Napsali jste, co upravit. Po odeslání kola
+        ji opravím a díl vydám znovu s novým písmenem revize.</span>
+      <span class="tecka zapracovano"></span><span><b>Zelený kroužek: opraveno.</b> Vaši připomínku jsem už zapracoval.
+        Na stránce je opravený výkres s novým písmenem revize (třeba B místo A). Podívejte se na něj v dalším kole.</span>
+      <span class="tecka hotovo"></span><span><b>Šedá: hotový díl.</b> Odsouhlasili jste ho už dřív. Znovu ho procházet
+        nemusíte. Kdybyste na něm přece jen potřebovali změnu, připomínku napsat můžete.</span>
     </div>
-    <p style="margin:12px 0 0">Tečka u revize v přehledu dílů:</p>
+    <p style="margin:8px 0 0">Stejný význam mají štítky v přehledu dílů: <span class="volba ceka">k projití</span>
+      <span class="volba ok">✓ v pořádku</span> <span class="volba pripominka">připomínka</span>
+      <span class="volba zapracovano">✓ zapracováno</span></p>
+
+    <h3>Tečka za písmenem revize</h3>
+    <p style="margin:4px 0 0">V přehledu dílů ve sloupci Rev.:</p>
     <div class="legenda">
-      <span class="revize"><span class="vydano"></span></span><span>výkres této revize je vydaný</span>
-      <span class="revize"><span class="nevydano"></span></span><span>revize je rozpracovaná, výkres ještě vydaný není</span>
+      <span class="revize"><span class="vydano"></span></span><span><b>Zelená:</b> tuhle verzi výkresu jsem vydal.
+        To, co vidíte, je platné ke kontrole.</span>
+      <span class="revize"><span class="nevydano"></span></span><span><b>Prázdný kroužek:</b> na dílu právě pracuji.
+        Zatím vidíte poslední vydanou verzi. Novou uvidíte, až ji vydám.</span>
     </div>
     <div class="tlacitka" style="margin-top:18px">
       <button class="tl" data-zavrit-okno>Rozumím</button>
