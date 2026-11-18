@@ -804,6 +804,19 @@ body:not(.bez-panelu) .lista { display: none; }
 .pata-panelu .tl { width: 100%; background: #fff; color: var(--akcent); border-color: #fff; }
 .pata-panelu .tl:hover:not(:disabled) { background: #e8eef3; border-color: #e8eef3; }
 .pata-panelu .tl:disabled { opacity: 0.4; }
+.pata-panelu .napoveda-panelu {
+  display: flex; align-items: center; justify-content: center; gap: 8px; height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.35); border-radius: var(--radius); background: none;
+  color: #fff; font-size: 14px; font-weight: 700;
+}
+.pata-panelu .napoveda-panelu:hover { background: rgba(255, 255, 255, 0.08); border-color: #fff; }
+.pata-panelu .napoveda-panelu svg { width: 18px; height: 18px; }
+/* Vysvětlivky značek v návodu (bílé okno, ne tmavý panel). */
+.legenda { display: grid; grid-template-columns: 22px 1fr; gap: 8px 10px; align-items: center; margin: 10px 0 0; font-size: 14px; color: var(--text-2); }
+.legenda .tecka { justify-self: center; }
+.legenda .tecka:not(.ok):not(.pripominka):not(.zapracovano):not(.hotovo) { border-color: #9aabbb; }
+.legenda .revize { justify-self: center; }
+.okno h3 { margin: 18px 0 0; font-size: 15px; font-weight: 700; color: var(--text); }
 .pata-panelu .odkaz-panelu {
   border: 0; background: none; padding: 4px 0; color: #8ea2b3; font-size: 13px; text-align: left;
 }
@@ -1243,6 +1256,7 @@ function teckaDilu(p) {
   return `<span class="tecka" title="${koloOdeslane() ? "" : "Ještě neprošlý"}"></span>`;
 }
 
+const IKONA_OTAZNIK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/></svg>`;
 const IKONA_MENU = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
 
 function vykresliPanel() {
@@ -1266,16 +1280,10 @@ function vykresliPanel() {
       <div><b>Jan Hrnek</b><span>technická dokumentace</span></div>
       <button class="krizek-panelu zavrit-panel" data-zavrit-panel aria-label="Zavřít seznam">×</button>
     </div>
-    <div class="projekt-panelu">
-      <div class="kod">PROJEKT ${h(nahled.projekt)}</div>
-      <div class="nazev">${h(nahled.nazev || nahled.projekt)}</div>
-      <div class="stav-panelu"><b>${h(stav.text)}</b>${h(stav.pod || "")}${
-        stav.celkem ? `<div class="ukazatel"><div style="width:${Math.round((stav.hotovo / stav.celkem) * 100)}%"></div></div>` : ""}</div>
-    </div>
     <button class="na-prehled${otevrene ? "" : " ano"}" data-prehled>Přehled projektu</button>
     <div class="strom">${strom}</div>
     <div class="pata-panelu">${odeslat}
-      <button class="odkaz-panelu" data-navod>Jak to funguje</button>
+      <button class="napoveda-panelu" data-navod>${IKONA_OTAZNIK}Jak to funguje</button>
     </div>`;
   $("mob-hlava").innerHTML = `
     <button class="krizek-panelu" data-otevri-panel aria-label="Seznam dílů">${IKONA_MENU}</button>
@@ -2209,6 +2217,20 @@ function otevriNavod() {
       ${stazeni ? `<li><b>Díl s připomínkou</b> nejde stáhnout, dokud nevyjde nová revize.</li>` : ""}
       <li>Klidně mi pište i e-mailem.</li>
     </ul>
+    <h3>Co znamenají značky</h3>
+    <p style="margin:4px 0 0">Tečka u dílu v seznamu dílů:</p>
+    <div class="legenda">
+      <span class="tecka"></span><span>ještě neprošlý — v tomto kole na něj čeká vaše volba</span>
+      <span class="tecka ok"></span><span>V pořádku — v tomto kole jste ho odsouhlasili</span>
+      <span class="tecka pripominka"></span><span>připomínka — napsali jste, co upravit</span>
+      <span class="tecka zapracovano"></span><span>připomínka je zapracovaná v nové revizi</span>
+      <span class="tecka hotovo"></span><span>hotový díl — procházet ho nemusíte</span>
+    </div>
+    <p style="margin:12px 0 0">Tečka u revize v přehledu dílů:</p>
+    <div class="legenda">
+      <span class="revize"><span class="vydano"></span></span><span>výkres této revize je vydaný</span>
+      <span class="revize"><span class="nevydano"></span></span><span>revize je rozpracovaná, výkres ještě vydaný není</span>
+    </div>
     <div class="tlacitka" style="margin-top:18px">
       <button class="tl" data-zavrit-okno>Rozumím</button>
     </div>`);
