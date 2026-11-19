@@ -801,7 +801,6 @@ body:not(.bez-panelu) .lista { display: none; }
 .tecka.ok { background: #6fcf97; border-color: #6fcf97; }
 .tecka.pripominka { background: #f28b82; border-color: #f28b82; }
 .tecka.hotovo { background: #6f849a; border-color: #6f849a; }
-.tecka.zapracovano { background: none; border-color: #6fcf97; }
 .pata-panelu { display: grid; gap: 8px; padding: 14px 22px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .pata-panelu .tl { width: 100%; background: #fff; color: var(--akcent); border-color: #fff; }
 .pata-panelu .tl:hover:not(:disabled) { background: #e8eef3; border-color: #e8eef3; }
@@ -815,10 +814,11 @@ body:not(.bez-panelu) .lista { display: none; }
 .pata-panelu .napoveda-panelu svg { width: 18px; height: 18px; }
 /* Vysvětlivky značek v návodu (bílé okno, ne tmavý panel). */
 .legenda { display: grid; grid-template-columns: 22px 1fr; gap: 10px 10px; align-items: start; margin: 10px 0 0; font-size: 14px; color: var(--text-2); }
-.legenda .tecka { justify-self: center; margin-top: 7px; }
-.legenda .revize { margin-top: 2px; }
+/* Značka v rámečku vysokém jako první řádek textu — tečky sedí na řádku. */
+.legenda .znak { display: flex; align-items: center; justify-content: center; height: 1.65em; }
+.legenda .revize { gap: 0; }
 .legenda b { color: var(--text); }
-.legenda .tecka:not(.ok):not(.pripominka):not(.zapracovano):not(.hotovo) { border-color: #9aabbb; }
+.legenda .tecka:not(.ok):not(.pripominka):not(.hotovo) { border-color: #9aabbb; }
 .legenda .revize { justify-self: center; }
 .okno h3 { margin: 18px 0 0; font-size: 15px; font-weight: 700; color: var(--text); }
 .pata-panelu .odkaz-panelu {
@@ -1254,7 +1254,6 @@ function teckaDilu(p) {
   if (mimoKola(p)) return `<span></span>`;
   const v = volbaDilu(p.cislo);
   if (v?.volba === "ok") return `<span class="tecka ok" title="V pořádku"></span>`;
-  if (v?.volba === "pripominka" && v.vyrizeno) return `<span class="tecka zapracovano" title="Připomínka zapracovaná"></span>`;
   if (v?.volba === "pripominka") return `<span class="tecka pripominka" title="Připomínka"></span>`;
   if (p.stav === "hotovy") return `<span class="tecka hotovo" title="Hotový"></span>`;
   return `<span class="tecka" title="${koloOdeslane() ? "" : "Ještě neprošlý"}"></span>`;
@@ -1499,7 +1498,6 @@ function znackaVolby(p) {
   if (mimoKola(p)) return "";
   const v = volbaDilu(p.cislo);
   if (v?.volba === "ok") return `<span class="volba ok" title="V pořádku v ${kolo()}. kole">✓ v pořádku</span>`;
-  if (v?.volba === "pripominka" && v.vyrizeno) return `<span class="volba zapracovano" title="Připomínka z ${kolo()}. kola je zapracovaná v nové revizi">✓ zapracováno</span>`;
   if (v?.volba === "pripominka") return `<span class="volba pripominka" title="Připomínka v ${kolo()}. kole">připomínka</span>`;
   if (koloOdeslane() || p.stav === "hotovy") return "";
   return `<span class="volba ceka" title="V tomhle kole ještě bez volby">k projití</span>`;
@@ -2235,26 +2233,24 @@ function otevriNavod() {
     <h3>Tečky u dílů v seznamu</h3>
     <p style="margin:4px 0 0">Ukazují, jak je na tom každý díl ve vaší kontrole.</p>
     <div class="legenda">
-      <span class="tecka"></span><span><b>Prázdný kroužek: čeká na vás.</b> Díl jste v tomto kole ještě neotevřeli.
+      <span class="znak"><span class="tecka"></span></span><span><b>Prázdný kroužek: čeká na vás.</b> Díl jste v tomto kole ještě neotevřeli.
         Otevřete ho a zvolte V pořádku, nebo napište připomínku.</span>
-      <span class="tecka ok"></span><span><b>Zelená: v pořádku.</b> Díl jste odsouhlasili. Nic dalšího dělat nemusíte.</span>
-      <span class="tecka pripominka"></span><span><b>Červená: připomínka.</b> Napsali jste, co upravit. Po odeslání kola
-        ji opravím a díl vydám znovu s novým písmenem revize.</span>
-      <span class="tecka zapracovano"></span><span><b>Zelený kroužek: opraveno.</b> Vaši připomínku jsem už zapracoval.
-        Na stránce je opravený výkres s novým písmenem revize (třeba B místo A). Podívejte se na něj v dalším kole.</span>
-      <span class="tecka hotovo"></span><span><b>Šedá: hotový díl.</b> Odsouhlasili jste ho už dřív. Znovu ho procházet
+      <span class="znak"><span class="tecka ok"></span></span><span><b>Zelená: v pořádku.</b> Díl jste odsouhlasili. Nic dalšího dělat nemusíte.</span>
+      <span class="znak"><span class="tecka pripominka"></span></span><span><b>Červená: připomínka.</b> Napsali jste, co upravit. Po odeslání kola
+        ji opravím a díl vydám znovu s novým písmenem revize (třeba B místo A). Tím začne další kolo
+        a u opraveného dílu bude zase prázdný kroužek: zkontrolujete ho znovu.</span>
+      <span class="znak"><span class="tecka hotovo"></span></span><span><b>Šedá: hotový díl.</b> Odsouhlasili jste ho už dřív. Znovu ho procházet
         nemusíte. Kdybyste na něm přece jen potřebovali změnu, připomínku napsat můžete.</span>
     </div>
     <p style="margin:8px 0 0">Stejný význam mají štítky v přehledu dílů: <span class="volba ceka">k projití</span>
-      <span class="volba ok">✓ v pořádku</span> <span class="volba pripominka">připomínka</span>
-      <span class="volba zapracovano">✓ zapracováno</span></p>
+      <span class="volba ok">✓ v pořádku</span> <span class="volba pripominka">připomínka</span></p>
 
     <h3>Tečka za písmenem revize</h3>
     <p style="margin:4px 0 0">V přehledu dílů ve sloupci Rev.:</p>
     <div class="legenda">
-      <span class="revize"><span class="vydano"></span></span><span><b>Zelená:</b> tuhle verzi výkresu jsem vydal.
+      <span class="znak"><span class="revize"><span class="vydano"></span></span></span><span><b>Zelená:</b> tuhle verzi výkresu jsem vydal.
         To, co vidíte, je platné ke kontrole.</span>
-      <span class="revize"><span class="nevydano"></span></span><span><b>Prázdný kroužek:</b> na dílu právě pracuji.
+      <span class="znak"><span class="revize"><span class="nevydano"></span></span></span><span><b>Prázdný kroužek:</b> na dílu právě pracuji.
         Zatím vidíte poslední vydanou verzi. Novou uvidíte, až ji vydám.</span>
     </div>
     <div class="tlacitka" style="margin-top:18px">
