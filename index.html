@@ -517,7 +517,8 @@ footer { padding-left: 24px; padding-right: 24px; }
 }
 
 [hidden] { display: none !important; }
-body.okno-otevrene { overflow: hidden; }
+body.okno-otevrene, body.lupa-otevrena { overflow: hidden; }
+.lupa { overscroll-behavior: contain; }
 #okno .okno { overscroll-behavior: contain; }
 
 /* ── Stažení, požadavek na změnu, návod ──────────────────── */
@@ -553,12 +554,48 @@ body.okno-otevrene { overflow: hidden; }
 .volba.ceka { border-style: dashed; }
 .volba.zapracovano { border-color: var(--okraj); background: var(--bg); color: var(--text-2); }
 .radek .popis .volba { margin-left: 8px; vertical-align: 1px; }
+/* Štítky u popisu v jedné lince s textem: stejná výška, svisle na střed. */
+.radek .popis { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.radek .popis .popis-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radek .popis > .bublina, .radek .popis > .zamceno, .radek .popis > .volba {
+  flex: none; margin: 0; vertical-align: 0; height: 20px; padding: 0 8px; line-height: 1; box-sizing: border-box;
+}
+.radek .popis .popis-text + * { margin-left: 4px; }
 .komentar .hlavicka .volba { align-self: center; }
 .kolo { margin: 16px 0; }
 .kolo .kolo-hlavicka { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 16px; }
 .kolo .kolo-hlavicka span { font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .kolo p { margin: 8px 0 12px; font-size: 14px; color: var(--text-2); line-height: 1.45; }
 .kolo.odeslano p { margin-bottom: 0; }
+/* Kolo jde sbalit šipkou: zůstane nadpis, kolik je prošlé, a ukazatel. */
+.kolo .kolo-hlavicka .sbal-kolo {
+  margin-left: auto; align-self: center; width: 28px; height: 28px; display: inline-grid; place-items: center;
+  border: 1px solid var(--okraj); border-radius: 8px; background: var(--plocha); color: var(--text-2); cursor: pointer;
+}
+.kolo .kolo-hlavicka .sbal-kolo:hover { background: var(--bg); color: var(--text); }
+.kolo .kolo-hlavicka .sbal-kolo svg { width: 16px; height: 16px; transition: transform 0.2s; }
+.kolo.sbalene .sbal-kolo svg { transform: rotate(-90deg); }
+.kolo.sbalene p { display: none; }
+/* Pomocné texty: při první návštěvě zvýrazněné, jinak schované. */
+body.napoveda-skryta .pomocny { display: none !important; }
+body.napoveda-zvyraznena .pomocny, body.napoveda-zvyraznena .kolo:not(.odeslano) p {
+  background: #fff6d6; box-shadow: 0 0 0 4px #fff6d6; border-radius: 3px; color: var(--text);
+}
+#napoveda-lista {
+  position: fixed; right: 16px; bottom: 16px; z-index: 5; display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px 6px 12px; border: 1px solid var(--okraj); border-radius: 999px; background: var(--plocha);
+  box-shadow: var(--stin); font-size: 12px; color: var(--text-2);
+}
+#napoveda-lista:empty { display: none; }
+#napoveda-lista button {
+  border: 0; border-radius: 999px; background: var(--bg); color: var(--text); padding: 4px 10px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+}
+#napoveda-lista button:hover { background: var(--okraj); }
+body.napoveda-skryta #napoveda-lista { padding-left: 6px; }
+body.bez-panelu #napoveda-lista { display: none; }
+/* Místo dole, ať lišta nápovědy nezakryje tlačítka na konci stránky. */
+body:not(.bez-panelu) .hlavni footer { padding-bottom: 72px; }
 .ukazatel { height: 6px; margin-top: 10px; border-radius: 999px; background: var(--bg); overflow: hidden; }
 .ukazatel div { height: 100%; border-radius: inherit; background: var(--akcent); transition: width 0.3s; }
 .volba-dilu { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--okraj); border-radius: 12px; background: var(--plocha); }
@@ -829,6 +866,9 @@ body:not(.bez-panelu) .lista { display: none; }
 /* Přehled projektu vpravo */
 .hlavni main { max-width: 1200px; margin: 0; padding: 36px 40px 16px; }
 .hlavni footer { max-width: 1200px; margin: 0; padding: 16px 40px 40px; }
+/* Heslo a hlášky bez panelu: uprostřed obrazovky, ne u levého okraje. */
+body.bez-panelu .hlavni main { margin: 0 auto; flex: 1; display: grid; place-items: center; }
+body.bez-panelu .hlavni main .hlaska { margin: 0 auto 10vh; }
 .kroky { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 18px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--text-3); }
 .kroky li { display: flex; align-items: center; gap: 8px; }
 .kroky i {
@@ -932,6 +972,7 @@ body:not(.bez-panelu) .lista { display: none; }
     </footer>
   </div>
 </div>
+<div id="napoveda-lista" aria-live="polite"></div>
 <div id="lupa" class="lupa" hidden></div>
 <div id="okno" class="pozadi" hidden>
   <div class="detail okno" role="dialog" aria-modal="true"></div>
@@ -1405,8 +1446,8 @@ function vykresliPrehled() {
       <div class="kod">${h(nahled.projekt)}</div>
       <h1>${h(nahled.nazev || nahled.projekt)}</h1>
       <div class="meta">
-        ${vse.length} ${sklonuj(vse.length, "položka", "položky", "položek")}
-        · aktualizováno ${kdy(nahled.aktualizovano)}
+        <span class="pomocny">${vse.length} ${sklonuj(vse.length, "položka", "položky", "položek")}
+        · aktualizováno ${kdy(nahled.aktualizovano)}</span>
         <button class="obnovit${nacitam ? " toci" : ""}" data-obnovit
           title="Načíst znovu — jinak se stránka obnovuje sama každou minutu">${sipkaObnovit}Obnovit</button>
         ${nahled.povolitStazeni && (nahled.vykresy ?? []).length
@@ -1423,6 +1464,8 @@ function vykresliPrehled() {
     </section>`;
   $("paticka").hidden = false;
   prvniVykresleni = false;
+  aplikujNapovedu();
+  zeptejSeNaNapovedu();
 }
 
 /** Ruční obnovení. Šipka se točí aspoň chvilku, ať je vidět, že se něco stalo. */
@@ -1480,7 +1523,7 @@ function radek(p, zpozdeniMs = null) {
   return `
     <button class="${trida}" data-cislo="${h(p.cislo)}"${popisek ? ` title="${popisek}"` : ""}${styl}>
       <span class="cislo">${cislo(p.cislo)}</span>
-      <span class="popis${p.popis ? "" : " prazdny"}" title="${h(p.popis)}">${h(p.popis) || "bez popisu"}${
+      <span class="popis${p.popis ? "" : " prazdny"}" title="${h(p.popis)}"><span class="popis-text">${h(p.popis) || "bez popisu"}</span>${
         pocet ? `<span class="bublina" title="${pocet} ${sklonuj(pocet, "komentář", "komentáře", "komentářů")}">${IKONA_KOMENTARE}${pocet}</span>` : ""
       }${
         zamceno(p.cislo) ? `<span class="zamceno" title="Požadovaná změna — čeká na novou revizi">${IKONA_ZAMKU}čeká na revizi</span>` : ""
@@ -1523,9 +1566,12 @@ function koloHtml(anim, stav = stavZakazky()) {
       </section>`;
   }
   return `
-    <section class="karta kolo${anim ? " anim-karta" : ""}">
+    <section class="karta kolo${koloSbaleno ? " sbalene" : ""}${anim ? " anim-karta" : ""}">
       <div class="kolo-hlavicka"><b>${kolo()}. kolo připomínek</b>
-        <span>prošli jste ${hotovo} z ${celkem} ${sklonuj(celkem, "dílu", "dílů", "dílů")}</span></div>
+        <span>prošli jste ${hotovo} z ${celkem} ${sklonuj(celkem, "dílu", "dílů", "dílů")}</span>
+        <button class="sbal-kolo" type="button" data-sbal-kolo aria-expanded="${!koloSbaleno}"
+          title="${koloSbaleno ? "Rozbalit návod ke kolu" : "Sbalit návod ke kolu"}"><svg viewBox="0 0 20 20" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7.5 10 12.5 15 7.5"/></svg></button></div>
       <div class="ukazatel"><div style="width:${Math.round((hotovo / celkem) * 100)}%"></div></div>
       <p>Otevřete každý díl a zvolte <b>V pořádku</b>, nebo napište jednu připomínku.
         Volby se ukládají jen jako koncept: nic mi neodejde a do odeslání je můžete měnit.
@@ -1590,7 +1636,7 @@ function potvrdKolo(formular) {
       zapracovanych ? `, ${zapracovanych} už ${sklonuj(zapracovanych, "zapracovaná", "zapracované", "zapracovaných")}` : ""}.
       Zkontrolujte prosím souhrn. Po odeslání už volby v tomto kole nejde změnit.</p>
     <ul class="souhrn-kola">${radky}</ul>
-    ${text ? `<p><b>Komentář k projektu:</b> ${h(text)}</p>` : ""}
+    <p><b>Komentář k projektu:</b> ${text ? h(text) : `Vše jsme prošli, prosím proveďte změny. <span class="tlumene">(nic jste nenapsali, odešle se tento text)</span>`}</p>
     <div class="tlacitka" style="margin-top:18px">
       <button class="tl vedlejsi" data-zavrit-okno>Zpět</button>
       <button class="tl" data-potvrd-kolo>Potvrzuji a odesílám</button>
@@ -1654,7 +1700,7 @@ function volbaHtml(p) {
     // Koncept: zatím nic neodešlo, jde změnit až do odeslání kola.
     return `<div class="volba-dilu hotovo">${znacka}
       <span class="volba-text">${v.volba === "pripominka" ? h(v.text) : "Díl jste označili jako v pořádku."}
-        <span class="koncept">Uloženo jako koncept, odešle se až s Odeslat připomínky.</span></span>
+        <span class="koncept pomocny">Uloženo jako koncept, odešle se až s Odeslat připomínky.</span></span>
       <button class="tl vedlejsi maly" type="button" data-zrus-volbu="${h(p.cislo)}">Změnit</button></div>`;
   }
   if (v) {
@@ -1675,7 +1721,7 @@ function volbaHtml(p) {
     <form class="formular volba-dilu" data-volba-dilu="${h(p.cislo)}">
       <div class="volba-nadpis">${hotovy
         ? `<b>Díl je hotový</b>, procházet ho nemusíte. Pokud na něm přesto potřebujete změnu, napište připomínku.`
-        : `<b>${kolo()}. kolo připomínek</b> — zvolte jedno. Uloží se jako koncept, odešle se až s Odeslat připomínky.`}</div>
+        : `<b>${kolo()}. kolo připomínek</b> — zvolte jedno.<span class="pomocny"> Uloží se jako koncept, odešle se až s Odeslat připomínky.</span>`}</div>
       <textarea name="text" maxlength="4000" placeholder="Připomínka k ${h(p.cislo)} — co upravit"></textarea>
       <div class="dole">
         <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
@@ -1799,14 +1845,14 @@ function komentareHtml(cislo, nadpis) {
   }
   return `
     <h3>${h(nadpis)}${seznam.length ? `<span>${seznam.length}</span>` : ""}${razeni}</h3>
-    <p class="vysvetleni">Sem mi můžete psát i místo e-mailu, ale jen dotazy ke stavu projektu.
+    <p class="vysvetleni pomocny">Sem mi můžete psát i místo e-mailu, ale jen dotazy ke stavu projektu.
       Změny prosím pište jako připomínku u konkrétního dílu.</p>
     ${polozky}
     <form class="formular" data-cislo="">
       <textarea name="text" maxlength="4000"
         placeholder="${koloOdeslane() || !dilyKola().length
           ? "Dotaz nebo poznámka k celému projektu"
-          : "Dotaz k projektu, nebo komentář k odeslání kola, např. „Vše jsme prošli, prosím proveďte změny.“"}"></textarea>
+          : "Dotaz k projektu, nebo vzkaz k odeslání kola. Když nic nenapíšete, odešle se: „Vše jsme prošli, prosím proveďte změny.“"}"></textarea>
       <div class="dole">
         <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
         <button class="tl vedlejsi" type="submit">Odeslat komentář</button>
@@ -2141,6 +2187,73 @@ async function stahniVse(tlacitko) {
 let casovacOkna = 0;
 let cekaNaJmeno = null; // vyřízení slibu z zjistiJmeno
 
+// ── Pomocné texty a první návštěva ─────────────────────────
+// Při první návštěvě se stránka zeptá „Jste tu poprvé?". Ano = pomocné
+// texty zvýrazněné, Ne = schované (stránka je čistá). Přepnout jde
+// kdykoli lištou vpravo dole. Pamatuje si to prohlížeč.
+
+const KLIC_NAPOVEDY = "nahled-napoveda";
+const KLIC_KOLA = "nahled-kolo-sbaleno";
+let ptaSeNaNapovedu = false;
+
+function ulozene(klic) {
+  try { return localStorage.getItem(klic); } catch { return null; }
+}
+function uloz(klic, hodnota) {
+  try { localStorage.setItem(klic, hodnota); } catch { /* soukromé okno: jen do zavření */ }
+}
+
+let napoveda = ulozene(KLIC_NAPOVEDY) !== "ne";
+// Kolo: vlastní volba šipkou, jinak podle nápovědy (bez ní sbalené).
+let koloSbaleno = ulozene(KLIC_KOLA) !== null ? ulozene(KLIC_KOLA) === "1" : !napoveda;
+
+function aplikujNapovedu() {
+  document.body.classList.toggle("napoveda-zvyraznena", napoveda);
+  document.body.classList.toggle("napoveda-skryta", !napoveda);
+  $("napoveda-lista").innerHTML = napoveda
+    ? `Pokud zvýrazněné texty nechcete vidět, <button type="button" data-napoveda="ne">skrýt</button>`
+    : `<button type="button" data-napoveda="ano">Zobrazit pomocné texty</button>`;
+}
+
+function nastavNapovedu(zapnout) {
+  napoveda = zapnout;
+  uloz(KLIC_NAPOVEDY, zapnout ? "ano" : "ne");
+  // Návod ke kolu jde s nápovědou; šipkou se dá přepnout zvlášť.
+  koloSbaleno = !zapnout;
+  uloz(KLIC_KOLA, koloSbaleno ? "1" : "0");
+  aplikujNapovedu();
+  const karta = document.querySelector(".kolo:not(.odeslano)");
+  if (karta) nastavKolo(karta);
+}
+
+function zeptejSeNaNapovedu() {
+  if (ulozene(KLIC_NAPOVEDY) !== null || ptaSeNaNapovedu || !$("okno").hidden) return;
+  ptaSeNaNapovedu = true;
+  otevriOkno(`
+    <h2>Jste tu poprvé?</h2>
+    <p>Pokud ano, zvýrazním vám pomocné texty, které vysvětlují, jak náhled funguje.
+      Schovat je půjde kdykoli tlačítkem vpravo dole.</p>
+    <div class="tlacitka" style="margin-top:18px">
+      <button class="tl vedlejsi" data-napoveda="ne">Ne, znám to</button>
+      <button class="tl" data-napoveda="ano">Ano, jsem tu poprvé</button>
+    </div>`);
+}
+
+function nastavKolo(karta) {
+  karta.classList.toggle("sbalene", koloSbaleno);
+  const tl = karta.querySelector("[data-sbal-kolo]");
+  if (tl) {
+    tl.setAttribute("aria-expanded", String(!koloSbaleno));
+    tl.title = koloSbaleno ? "Rozbalit návod ke kolu" : "Sbalit návod ke kolu";
+  }
+}
+
+function prepniKolo(tlacitko) {
+  koloSbaleno = !koloSbaleno;
+  uloz(KLIC_KOLA, koloSbaleno ? "1" : "0");
+  nastavKolo(tlacitko.closest(".kolo"));
+}
+
 function otevriOkno(html) {
   const okno = $("okno");
   // Stránka pod oknem se nesmí posouvat — kolečko posouvá jen okno.
@@ -2156,6 +2269,11 @@ function otevriOkno(html) {
 function zavriOkno() {
   const okno = $("okno");
   if (okno.hidden) return;
+  // Otázku „Jste tu poprvé?" zavřel bez odpovědi: bere se jako Ne.
+  if (ptaSeNaNapovedu) {
+    ptaSeNaNapovedu = false;
+    nastavNapovedu(false);
+  }
   if (cekaNaJmeno) {
     cekaNaJmeno(null);
     cekaNaJmeno = null;
@@ -2277,6 +2395,8 @@ function otevriLupu(adresa) {
   const lupa = $("lupa");
   lupa.innerHTML = `<button class="zavrit" data-zavrit-lupu>Zavřít</button><img src="${h(adresa)}" alt="" draggable="false">`;
   lupa.classList.remove("plna", "zavira", "otvira");
+  // Stránka pod výkresem se nesmí posouvat — kolečko posouvá jen výkres.
+  document.body.classList.add("lupa-otevrena");
   lupa.hidden = false;
   void lupa.offsetWidth;
   lupa.classList.add("otvira");
@@ -2290,6 +2410,7 @@ function zavriLupu() {
   setTimeout(() => {
     lupa.hidden = true;
     lupa.classList.remove("zavira");
+    document.body.classList.remove("lupa-otevrena");
     // 3D se vrátí do detailu (s otočením, jak ho zadavatel nechal).
     if (lupa3d) {
       lupa3d = false;
@@ -2501,6 +2622,7 @@ async function otevriLupu3d() {
   lupa.append(p.obal);
   if (misto) vlozProhlizec(misto, null); // v detailu zůstane jen poznámka
   lupa.classList.remove("plna", "zavira", "otvira");
+  document.body.classList.add("lupa-otevrena");
   lupa.hidden = false;
   void lupa.offsetWidth;
   lupa.classList.add("otvira");
@@ -2514,9 +2636,17 @@ document.addEventListener("click", (e) => {
   // i začal, ne když otáčení 3D modelu skončí kurzorem mimo kartu.
   if (e.target === $("okno")) return zavriOkno();
   const cil = e.target.closest(
-    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-potvrd-kolo], [data-zrus-volbu], [data-stahni], [data-stahni-vse], [data-razeni], [data-prehled], [data-otevri-panel], [data-zavrit-panel], [data-k-odeslani]"
+    "[data-cislo], [data-zavrit], [data-zobrazeni], [data-lupa], [data-lupa3d], [data-zavrit-lupu], [data-rozbal], [data-obnovit], #lupa img, [data-navod], [data-zavrit-okno], [data-potvrd-kolo], [data-zrus-volbu], [data-stahni], [data-stahni-vse], [data-razeni], [data-prehled], [data-otevri-panel], [data-zavrit-panel], [data-k-odeslani], [data-sbal-kolo], [data-napoveda]"
   );
   if (!cil || cil.matches("form")) return;
+  if (cil.matches("[data-sbal-kolo]")) return prepniKolo(cil);
+  if (cil.matches("[data-napoveda]")) {
+    const zOkna = Boolean(cil.closest("#okno"));
+    ptaSeNaNapovedu = false;
+    nastavNapovedu(cil.dataset.napoveda === "ano");
+    if (zOkna) zavriOkno();
+    return;
+  }
   if (cil.matches("[data-otevri-panel]")) return otevriPanel();
   if (cil.matches("[data-zavrit-panel]")) return zavriPanel();
   if (cil.matches("[data-k-odeslani]")) return kOdeslani();
