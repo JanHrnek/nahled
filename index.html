@@ -1865,10 +1865,15 @@ function komentareHtml(cislo, nadpis) {
       Změny prosím pište jako připomínku u konkrétního dílu.</p>
     ${polozky}
     <form class="formular" data-cislo="">
-      <textarea name="text" maxlength="4000"
-        placeholder="${koloOdeslane() || !dilyKola().length
-          ? "Dotaz nebo poznámka k celému projektu"
-          : `Dotaz k projektu, nebo vzkaz k odeslání kola. Když nic nenapíšete, pošle se automatická odpověď: „${vychoziTextKola()}“`}"></textarea>
+      ${(() => {
+        // Dlouhá nápověda v poli je pomocný text: bez nápovědy jen krátce.
+        const kratky = "Dotaz nebo poznámka k celému projektu";
+        const plny = koloOdeslane() || !dilyKola().length
+          ? kratky
+          : `Dotaz k projektu, nebo vzkaz k odeslání kola. Když nic nenapíšete, pošle se automatická odpověď: „${vychoziTextKola()}“`;
+        return `<textarea name="text" maxlength="4000" data-ph-kratky="${h(kratky)}" data-ph-plny="${h(plny)}"
+          placeholder="${h(napoveda ? plny : kratky)}"></textarea>`;
+      })()}
       <div class="dole">
         <input name="autor" maxlength="80" required placeholder="Vaše jméno" value="${h(jmeno())}">
         <button class="tl vedlejsi" type="submit">Odeslat komentář</button>
@@ -2226,6 +2231,9 @@ let koloSbaleno = ulozene(KLIC_KOLA) !== null ? ulozene(KLIC_KOLA) === "1" : !na
 function aplikujNapovedu() {
   document.body.classList.toggle("napoveda-zvyraznena", napoveda);
   document.body.classList.toggle("napoveda-skryta", !napoveda);
+  for (const pole of document.querySelectorAll("textarea[data-ph-plny]")) {
+    pole.placeholder = napoveda ? pole.dataset.phPlny : pole.dataset.phKratky;
+  }
   $("napoveda-lista").innerHTML = napoveda
     ? `Pokud zvýrazněné texty nechcete vidět, <button type="button" data-napoveda="ne">skrýt</button>`
     : `<button type="button" data-napoveda="ano">Zobrazit pomocné texty</button>`;
