@@ -1,0 +1,10 @@
+{
+  "client_id": "https://janhrnek.github.io/nahled/autodesk-klient.json",
+  "client_name": "JH Projekty",
+  "client_uri": "https://janhrnek.github.io/nahled/",
+  "redirect_uris": ["http://127.0.0.1:47812/callback"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "token_endpoint_auth_method": "none",
+  "scope": "mcp:read mcp:write offline_access"
+}
