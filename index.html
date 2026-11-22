@@ -1780,7 +1780,9 @@ function volbaHtml(p) {
       ${v.volba === "ok"
         ? `V ${kolo()}. kole jste díl označili jako v pořádku.`
         : zapracovano
-          ? `Připomínku z ${kolo()}. kola jsem zapracoval ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}.`
+          ? v.oprava && v.vyrizeni !== "zamitnuto"
+            ? `Chybu ve výkresu z ${kolo()}. kola jsem opravil ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}, oprava je v ceně.`
+            : `Připomínku z ${kolo()}. kola jsem zapracoval ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}.`
           : v.oprava
             ? `Šlo o moji chybu ve výkresu, opravím ji v ceně. Do kol připomínek se nepočítá.`
             : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
@@ -1887,6 +1889,15 @@ function komentareHtml(cislo, nadpis) {
     ? `<button class="razeni-tl" type="button" data-razeni
         title="Přepnout řazení">${nejnovejsiNahore ? "Nejnovější nahoře ↓" : "Nejstarší nahoře ↑"}</button>`
     : "";
+  // Vyřízená připomínka si drží, že šlo o Honzovu chybu („oprava v ceně") —
+  // v appce to jde označit i zpětně, po vydání nové revize.
+  const vyrizena = (k) => {
+    const vKole = `${k.kolo ?? 1}. kolo`;
+    if (k.vyrizeni === "zamitnuto") return `<span class="volba zapracovano">připomínka · ${vKole} · zamítnuto</span>`;
+    return k.oprava
+      ? `<span class="volba zapracovano" title="Chyba ve výkresu, oprava byla v ceně a do kol připomínek se nepočítá">✓ oprava v ceně · ${vKole} · zapracováno</span>`
+      : `<span class="volba zapracovano">✓ připomínka · ${vKole} · zapracováno</span>`;
+  };
   const polozky = seznam.length
     ? `<ul>${seznam.map((k) => `
         <li class="komentar${k.odZadavatele ? "" : " od-autora"}">
@@ -1896,7 +1907,7 @@ function komentareHtml(cislo, nadpis) {
             ${k.volba === "odeslani" ? `<span class="volba ok">${k.kolo ?? 1}. kolo odesláno</span>` : ""}
             ${k.volba === "pripominka"
               ? k.vyrizeno
-                ? `<span class="volba zapracovano">${k.vyrizeni === "zamitnuto" ? "připomínka" : "✓ připomínka"} · ${k.kolo ?? 1}. kolo · ${k.vyrizeni === "zamitnuto" ? "zamítnuto" : "zapracováno"}</span>`
+                ? vyrizena(k)
                 : znackaPripominky(k, ` · ${k.kolo ?? 1}. kolo`)
               : ""}
             ${k.pozadujeZmenu && k.volba !== "pripominka"
