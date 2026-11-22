@@ -1668,8 +1668,8 @@ function potvrdKolo(formular) {
   koloKPotvrzeni = formular;
   const text = formular.text.value.trim();
   const dily = dilySouhrnu();
-  // Připomínka z tohohle kola, kterou nová revize už vyřešila, je
-  // zapracovaná — ne červená a nepočítá se mezi nové připomínky.
+  // Připomínka z tohohle kola, kterou nová revize už vyřešila (nebo ji
+  // Honza zamítl), je vyřízená — ne červená a nepočítá se mezi nové.
   const zapracovana = (v) => v?.volba === "pripominka" && v.vyrizeno && !v.koncept;
   const pripominek = dily.filter((p) => {
     const v = volbaDilu(p.cislo);
@@ -1681,7 +1681,7 @@ function potvrdKolo(formular) {
     const rev = p.revize ? `rev. ${h(p.revize)}` : "originál";
     return `<li><span class="cislo">${cislo(p.cislo)}</span> ${h(p.popis || "")} <span class="tlumene" style="font-style:normal">· ${rev}</span><br>${
       zapracovana(v)
-        ? `<span class="volba zapracovano">✓ zapracováno</span> ${h(v.text)}`
+        ? `<span class="volba zapracovano">${v.vyrizeni === "zamitnuto" ? "zamítnuto" : "✓ zapracováno"}</span> ${h(v.text)}`
         : v?.volba === "pripominka"
           ? `${znackaPripominky(v)} ${h(v.text)}`
           : `<span class="volba ok">✓ v pořádku</span>`}</li>`;
@@ -1704,7 +1704,7 @@ function potvrdKolo(formular) {
     <h2>Odeslat ${kolo()}. kolo připomínek?</h2>
     <p>${vPoradku} ${sklonuj(vPoradku, "díl", "díly", "dílů")} v pořádku,
       ${pripominek} ${sklonuj(pripominek, "připomínka", "připomínky", "připomínek")}${
-      zapracovanych ? `, ${zapracovanych} už ${sklonuj(zapracovanych, "zapracovaná", "zapracované", "zapracovaných")}` : ""}.
+      zapracovanych ? `, ${zapracovanych} už ${sklonuj(zapracovanych, "vyřízená", "vyřízené", "vyřízených")}` : ""}.
       Zkontrolujte prosím souhrn. Po odeslání už volby v tomto kole nejde změnit.</p>
     <ul class="souhrn-kola">${radky}</ul>
     ${komentarKKolu(text)}
@@ -1763,11 +1763,15 @@ function volbaHtml(p) {
   const hotovy = p.stav === "hotovy";
   const v = volbaDilu(p.cislo);
   const zapracovano = v?.volba === "pripominka" && v.vyrizeno && !v.koncept;
+  // Zamítnutá připomínka je taky vyřízená, ale díl se kvůli ní nezměnil.
+  const zamitnuto = zapracovano && v.vyrizeni === "zamitnuto";
   const znacka = v?.volba === "ok"
     ? `<span class="volba ok">✓ v pořádku</span>`
-    : zapracovano
-      ? `<span class="volba zapracovano">✓ zapracováno</span>`
-      : znackaPripominky(v);
+    : zamitnuto
+      ? `<span class="volba zapracovano">zamítnuto</span>`
+      : zapracovano
+        ? `<span class="volba zapracovano">✓ zapracováno</span>`
+        : znackaPripominky(v);
   if (v?.koncept) {
     // Koncept: zatím nic neodešlo, jde změnit až do odeslání kola.
     return `<div class="volba-dilu hotovo">${znacka}
@@ -1779,13 +1783,15 @@ function volbaHtml(p) {
     return `<div class="volba-dilu hotovo">${znacka}
       ${v.volba === "ok"
         ? `V ${kolo()}. kole jste díl označili jako v pořádku.`
-        : zapracovano
-          ? v.oprava && v.vyrizeni !== "zamitnuto"
-            ? `Chybu ve výkresu z ${kolo()}. kola jsem opravil ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}, oprava je v ceně.`
-            : `Připomínku z ${kolo()}. kola jsem zapracoval ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}.`
-          : v.oprava
-            ? `Šlo o moji chybu ve výkresu, opravím ji v ceně. Do kol připomínek se nepočítá.`
-            : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
+        : zamitnuto
+          ? `Připomínku z ${kolo()}. kola jsem zamítl, díl zůstává beze změny.`
+          : zapracovano
+            ? v.oprava
+              ? `Chybu ve výkresu z ${kolo()}. kola jsem opravil ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}, oprava je v ceně.`
+              : `Připomínku z ${kolo()}. kola jsem zapracoval ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}.`
+            : v.oprava
+              ? `Šlo o moji chybu ve výkresu, opravím ji v ceně. Do kol připomínek se nepočítá.`
+              : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
   }
   if (koloOdeslane()) {
     return `<div class="volba-dilu hotovo">${kolo()}. kolo je odeslané. Další připomínky půjdou napsat po novém vydání.</div>`;
