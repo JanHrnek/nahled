@@ -567,6 +567,8 @@ body.okno-otevrene, body.lupa-otevrena { overflow: hidden; }
 .volba.oprava { border-color: #b9d2ee; background: #eef5fc; color: #1d5fa8; }
 .volba.ceka { border-style: dashed; }
 .volba.zapracovano { border-color: var(--okraj); background: var(--bg); color: var(--text-2); }
+/* Zamítnutá připomínka: jediný plný štítek, ať ji zadavatel nepřehlédne. */
+.volba.zamitnuto { border-color: #b45309; background: #b45309; color: #fff; }
 .radek .popis .volba { margin-left: 8px; vertical-align: 1px; }
 /* Štítky u popisu v jedné lince s textem: stejná výška, svisle na střed. */
 .radek .popis { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -716,6 +718,21 @@ main { max-width: 1168px; padding: 48px 24px 20px; }
 .volba-dilu, .souhrn-kola { border-radius: var(--radius); }
 .volba-dilu .volba-text { flex: 1 1 240px; }
 .volba-dilu .koncept { display: block; margin-top: 2px; font-size: 12px; color: var(--text-3); }
+/* Rámeček zamítnuté připomínky: co jsem zamítl, proč a co s tím dál. */
+.zamitnuti {
+  margin-top: 16px; padding: 14px 16px; border: 1px solid #f0c68a; border-left: 4px solid #b45309;
+  border-radius: var(--radius); background: #fff7ed; font-size: 14px; line-height: 1.45; color: var(--text);
+}
+.zamitnuti + .volba-dilu { margin-top: 10px; }
+.zamitnuti-hlava { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.zamitnuti p { margin: 8px 0 0; overflow-wrap: anywhere; }
+.zamitnuti .zamitnuti-pripominka { color: var(--text-2); font-style: italic; }
+.zamitnuti .zamitnuti-duvod { white-space: pre-wrap; }
+.zamitnuti .zamitnuti-dal { color: var(--text-2); }
+.komentar .duvod-zamitnuti {
+  margin-top: 8px; padding: 8px 12px; border-left: 3px solid #b45309; border-radius: 6px; background: #fff7ed;
+  font-size: 14px; line-height: 1.45; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
+}
 .tl.maly { height: 32px; padding: 0 12px; font-size: 13px; }
 .ukazatel { border-radius: var(--radius-ostry); }
 .revize { font-size: 12px; font-weight: 500; }
@@ -865,6 +882,7 @@ body:not(.bez-panelu) .lista { display: none; }
 .tecka.pripominka { background: #f28b82; border-color: #f28b82; }
 .tecka.oprava { background: #6aa5e0; border-color: #6aa5e0; }
 .tecka.hotovo { background: #6f849a; border-color: #6f849a; }
+.tecka.zamitnuto { background: #f2a33a; border-color: #f2a33a; }
 .pata-panelu { display: grid; gap: 8px; padding: 14px 22px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .pata-panelu .tl { width: 100%; background: #fff; color: var(--akcent); border-color: #fff; }
 .pata-panelu .tl:hover:not(:disabled) { background: #e8eef3; border-color: #e8eef3; }
@@ -882,7 +900,7 @@ body:not(.bez-panelu) .lista { display: none; }
 .legenda .znak { display: flex; align-items: center; justify-content: center; height: 1.65em; }
 .legenda .revize { gap: 0; }
 .legenda b { color: var(--text); }
-.legenda .tecka:not(.ok):not(.pripominka):not(.hotovo) { border-color: #9aabbb; }
+.legenda .tecka:not(.ok):not(.pripominka):not(.hotovo):not(.zamitnuto) { border-color: #9aabbb; }
 .legenda .revize { justify-self: center; }
 .okno h3 { margin: 18px 0 0; font-size: 15px; font-weight: 700; color: var(--text); }
 .pata-panelu .odkaz-panelu {
@@ -933,7 +951,7 @@ body.bez-panelu .hlavni main .hlaska { margin: 0 auto 10vh; }
 .vlozeny .ramecek { aspect-ratio: auto; height: min(74vh, 62vw); box-shadow: 0 6px 24px rgba(16, 20, 24, 0.12); border: 0; }
 .vlozeny .prepinac { max-width: 360px; margin: 14px auto 0; }
 .vlozeny .pravy { padding: 20px; background: var(--plocha); }
-.vlozeny .pravy .volba-dilu { margin: 0 0 16px; }
+.vlozeny .pravy .volba-dilu, .vlozeny .pravy .zamitnuti { margin: 0 0 16px; }
 .vlozeny dl.udaje { font-size: 13px; }
 .vlozeny .udaj dt { width: 96px; }
 .vlozeny .okoli, .vlozeny .sekce { padding: 20px 32px; background: var(--plocha); }
@@ -1248,6 +1266,42 @@ function volbaDilu(cislo) {
   return koncept ? { ...koncept, koncept: true } : null;
 }
 
+/** Odeslaná připomínka, kterou Honza zamítl (důvod je v `duvod`). */
+function jeZamitnuta(v) {
+  return v?.volba === "pripominka" && Boolean(v.vyrizeno) && v.vyrizeni === "zamitnuto" && !v.koncept;
+}
+
+/** Zamítnutá připomínka dílu, na kterou zadavatel ještě nereagoval: je to
+ *  jeho poslední odeslaná volba u dílu. Platí v kole zamítnutí i v dalších,
+ *  dokud díl znovu neoznačí (v pořádku, nebo nová připomínka). */
+function zamitnutaBezReakce(cislo) {
+  let posledni = null;
+  for (const k of nahled?.komentare ?? []) {
+    if (k.cislo !== cislo || (k.volba !== "ok" && k.volba !== "pripominka")) continue;
+    if (!posledni || (k.kolo ?? 1) >= (posledni.kolo ?? 1)) posledni = k;
+  }
+  return jeZamitnuta(posledni) ? posledni : null;
+}
+
+/** Štítek „zamítnuto" do přehledu; důvod je v bublině. */
+function znackaZamitnuto(k) {
+  const proc = k.duvod ? `: ${k.duvod}` : "";
+  return `<span class="volba zamitnuto" title="${h(`Připomínku z ${k.kolo ?? 1}. kola jsem zamítl${proc}`)}">zamítnuto</span>`;
+}
+
+/** Rámeček zamítnuté připomínky v detailu dílu: co jsem zamítl, proč
+ *  a co s tím dál (`dal` = věta, jak se zadavatel může vyjádřit). */
+function zamitnutiHtml(p, k, dal) {
+  const rev = p.revize ? `v revizi ${h(p.revize)}` : "v původní podobě";
+  return `<div class="zamitnuti">
+    <div class="zamitnuti-hlava"><span class="volba zamitnuto">zamítnuto</span>
+      <b>Připomínku z ${k.kolo ?? 1}. kola jsem zamítl</b></div>
+    <p class="zamitnuti-pripominka">${h(k.text)}</p>
+    ${k.duvod ? `<p class="zamitnuti-duvod"><b>Důvod:</b> ${h(k.duvod)}</p>` : ""}
+    <p class="zamitnuti-dal">Díl zůstává ${rev} beze změny.${dal ? ` ${dal}` : ""}</p>
+  </div>`;
+}
+
 /** Kolik dílů má v tomhle kole volbu. */
 function prosleDily() {
   const dily = dilyKola();
@@ -1257,6 +1311,16 @@ function prosleDily() {
 /** Čeká díl na novou revizi? Nevyřízený požadavek na změnu zamkne stažení. */
 function zamceno(cislo) {
   return (nahled?.komentare ?? []).some((k) => k.cislo === cislo && k.pozadujeZmenu && !k.vyrizeno);
+}
+
+/** Je stažení dílu pozastavené? U nového klienta (přísný režim) zamkne
+ *  nevyřízená připomínka celý projekt, jinak jen svůj díl — ať si nikdo
+ *  nestáhne výkres, který se kvůli ní může změnit. Totéž hlídá databáze
+ *  (stahni_vykres). */
+function stazeniPozastavene(cislo) {
+  if (zamceno(cislo)) return true;
+  return Boolean(nahled?.data?.rezim?.prisny)
+    && (nahled?.komentare ?? []).some((k) => k.pozadujeZmenu && !k.vyrizeno);
 }
 
 /** Stav k zobrazení. Stav určuje appka; web ho jen předběhne: požadavek
@@ -1319,6 +1383,12 @@ function stavZakazky() {
   }
   const nevyrizene = koloOdeslane() && pripominkyKola().some((p) => !volbaDilu(p.cislo)?.vyrizeno);
   if (nevyrizene) return { krok: 1, text: "Zapracovávám připomínky", pod: `${kolo()}. kolo odesláno ${kdy(nahled.koloOdeslano)}` };
+  // Odeslané kolo s připomínkami, které už jsou vyřízené (zamítnuté, nebo
+  // opravené bez nového kola), není schválení — zadavatel se k dílům
+  // vyjádří až v dalším kole.
+  if (koloOdeslane() && pripominkyKola().length) {
+    return { krok: 1, text: "Připomínky jsou vyřízené", pod: `${kolo()}. kolo odesláno ${kdy(nahled.koloOdeslano)}` };
+  }
   if (kStazeni) return { krok: 3, text: "Výkresy ke stažení", pod: "Aktuální vydané revize jsou u každého dílu." };
   if (rezim.prisny) {
     return { krok: 2, text: "Schváleno, čeká na úhradu", pod: "Výkresy pro výrobu budou ke stažení po úhradě faktury." };
@@ -1338,6 +1408,7 @@ function teckaDilu(p) {
   if (mimoKola(p)) return `<span></span>`;
   const v = volbaDilu(p.cislo);
   if (v?.volba === "ok") return `<span class="tecka ok" title="V pořádku"></span>`;
+  if (jeZamitnuta(v)) return `<span class="tecka zamitnuto" title="Připomínka zamítnuta"></span>`;
   if (v?.volba === "pripominka") return v.oprava
     ? `<span class="tecka oprava" title="Oprava v ceně"></span>`
     : `<span class="tecka pripominka" title="Připomínka"></span>`;
@@ -1610,11 +1681,15 @@ function znackaVolby(p) {
   if (mimoKola(p)) return "";
   const v = volbaDilu(p.cislo);
   if (v?.volba === "ok") return `<span class="volba ok" title="V pořádku v ${kolo()}. kole">✓ v pořádku</span>`;
+  if (jeZamitnuta(v)) return znackaZamitnuto(v);
   if (v?.volba === "pripominka") return znackaPripominky(v, "", `Připomínka v ${kolo()}. kole`);
   const drive = odsouhlasenoVKole(p);
   if (drive) return `<span class="volba ok" title="Odsouhlaseno v ${drive}. kole">✓ v pořádku</span>`;
-  if (koloOdeslane() || p.stav === "hotovy") return "";
-  return `<span class="volba ceka" title="V tomhle kole ještě bez volby">k projití</span>`;
+  // Zamítnutá připomínka z minulého kola, na kterou zadavatel ještě nereagoval.
+  const zamitnuta = zamitnutaBezReakce(p.cislo);
+  const zamitnuto = zamitnuta ? znackaZamitnuto(zamitnuta) : "";
+  if (koloOdeslane() || p.stav === "hotovy") return zamitnuto;
+  return `${zamitnuto}<span class="volba ceka" title="V tomhle kole ještě bez volby">k projití</span>`;
 }
 
 /** Pruh nahoře: kolo, kolik je projito, odeslání. */
@@ -1625,6 +1700,7 @@ function koloHtml(anim, stav = stavZakazky()) {
     if (stav.krok === 0) return "";
     const texty = {
       "Zapracovávám připomínky": "Děkuji, připomínky zapracuji najednou. Další kolo začne, až díly znovu vydám.",
+      "Připomínky jsou vyřízené": "Jak dopadly, uvidíte u jednotlivých dílů. Vyjádřit se k nim budete moct v dalším kole.",
       "Schváleno, čeká na úhradu": "Děkuji za schválení. Fakturu vám pošlu e-mailem. Po její úhradě tu budou výkresy pro výrobu ke stažení, s plným razítkem.",
       "Výkresy ke stažení": "Výkresy pro výrobu stáhnete v detailu každého dílu, nebo všechny najednou tlačítkem Stáhnout vše nahoře.",
       "Schváleno": "Děkuji, dokumentace je odsouhlasená.",
@@ -1681,7 +1757,9 @@ function potvrdKolo(formular) {
     const rev = p.revize ? `rev. ${h(p.revize)}` : "originál";
     return `<li><span class="cislo">${cislo(p.cislo)}</span> ${h(p.popis || "")} <span class="tlumene" style="font-style:normal">· ${rev}</span><br>${
       zapracovana(v)
-        ? `<span class="volba zapracovano">${v.vyrizeni === "zamitnuto" ? "zamítnuto" : "✓ zapracováno"}</span> ${h(v.text)}`
+        ? `${v.vyrizeni === "zamitnuto"
+            ? `<span class="volba zamitnuto">zamítnuto</span>`
+            : `<span class="volba zapracovano">✓ zapracováno</span>`} ${h(v.text)}`
         : v?.volba === "pripominka"
           ? `${znackaPripominky(v)} ${h(v.text)}`
           : `<span class="volba ok">✓ v pořádku</span>`}</li>`;
@@ -1763,43 +1841,50 @@ function volbaHtml(p) {
   const hotovy = p.stav === "hotovy";
   const v = volbaDilu(p.cislo);
   const zapracovano = v?.volba === "pripominka" && v.vyrizeno && !v.koncept;
-  // Zamítnutá připomínka je taky vyřízená, ale díl se kvůli ní nezměnil.
-  const zamitnuto = zapracovano && v.vyrizeni === "zamitnuto";
+  // Zamítnutá připomínka je taky vyřízená, ale díl se kvůli ní nezměnil…
+  // …a má vlastní rámeček s důvodem místo pruhu.
+  if (zapracovano && v.vyrizeni === "zamitnuto") {
+    return zamitnutiHtml(p, v,
+      "Vyjádřit se budete moct v dalším kole: díl označíte jako v pořádku, nebo napíšete novou připomínku.");
+  }
+  // Zamítnutá připomínka z minulého kola, na kterou zadavatel ještě
+  // nereagoval, se připomene nad volbou tohohle kola.
+  const drive = zamitnutaBezReakce(p.cislo);
+  const pred = drive
+    ? zamitnutiHtml(p, drive,
+        v || koloOdeslane() ? "" : "Níže prosím zvolte V pořádku, nebo napište novou připomínku.")
+    : "";
   const znacka = v?.volba === "ok"
     ? `<span class="volba ok">✓ v pořádku</span>`
-    : zamitnuto
-      ? `<span class="volba zapracovano">zamítnuto</span>`
-      : zapracovano
-        ? `<span class="volba zapracovano">✓ zapracováno</span>`
-        : znackaPripominky(v);
+    : zapracovano
+      ? `<span class="volba zapracovano">✓ zapracováno</span>`
+      : znackaPripominky(v);
   if (v?.koncept) {
     // Koncept: zatím nic neodešlo, jde změnit až do odeslání kola.
-    return `<div class="volba-dilu hotovo">${znacka}
+    return `${pred}<div class="volba-dilu hotovo">${znacka}
       <span class="volba-text">${v.volba === "pripominka" ? h(v.text) : "Díl jste označili jako v pořádku."}
         <span class="koncept pomocny">Uloženo jako koncept, odešle se až s Odeslat připomínky.</span></span>
       <button class="tl vedlejsi maly" type="button" data-zrus-volbu="${h(p.cislo)}">Změnit</button></div>`;
   }
   if (v) {
-    return `<div class="volba-dilu hotovo">${znacka}
+    return `${pred}<div class="volba-dilu hotovo">${znacka}
       ${v.volba === "ok"
         ? `V ${kolo()}. kole jste díl označili jako v pořádku.`
-        : zamitnuto
-          ? `Připomínku z ${kolo()}. kola jsem zamítl, díl zůstává beze změny.`
-          : zapracovano
-            ? v.oprava
-              ? `Chybu ve výkresu z ${kolo()}. kola jsem opravil ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}, oprava je v ceně.`
-              : `Připomínku z ${kolo()}. kola jsem zapracoval ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}.`
-            : v.oprava
-              ? `Šlo o moji chybu ve výkresu, opravím ji v ceně. Do kol připomínek se nepočítá.`
-              : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
+        : zapracovano
+          ? v.oprava
+            ? `Chybu ve výkresu z ${kolo()}. kola jsem opravil ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}, oprava je v ceně.`
+            : `Připomínku z ${kolo()}. kola jsem zapracoval ${p.revize ? `v revizi ${h(p.revize)}` : "v nové revizi"}.`
+          : v.oprava
+            ? `Šlo o moji chybu ve výkresu, opravím ji v ceně. Do kol připomínek se nepočítá.`
+            : `Připomínka z ${kolo()}. kola je odeslaná.`}</div>`;
   }
   if (koloOdeslane()) {
-    return `<div class="volba-dilu hotovo">${kolo()}. kolo je odeslané. Další připomínky půjdou napsat po novém vydání.</div>`;
+    return `${pred}<div class="volba-dilu hotovo">${kolo()}. kolo je odeslané. Další připomínky půjdou napsat po novém vydání.</div>`;
   }
   const chyba = chybaFormulare["#volba"] ? `<p class="chyba">${h(chybaFormulare["#volba"])}</p>` : "";
   // Hotový díl se procházet nemusí — jen připomínka, když se přece
   // objeví změna. „V pořádku" by u něj nic neznamenalo.
-  return `
+  return `${pred}
     <form class="formular volba-dilu" data-volba-dilu="${h(p.cislo)}">
       <div class="volba-nadpis">${hotovy
         ? `${odsouhlasenoVKole(p) ? `<span class="volba ok">✓ v pořádku</span> Odsouhlasili jste ho v ${odsouhlasenoVKole(p)}. kole. ` : ""}<b>Díl je hotový</b>, procházet ho nemusíte. Pokud na něm přesto potřebujete změnu, napište připomínku.`
@@ -1899,7 +1984,7 @@ function komentareHtml(cislo, nadpis) {
   // v appce to jde označit i zpětně, po vydání nové revize.
   const vyrizena = (k) => {
     const vKole = `${k.kolo ?? 1}. kolo`;
-    if (k.vyrizeni === "zamitnuto") return `<span class="volba zapracovano">připomínka · ${vKole} · zamítnuto</span>`;
+    if (k.vyrizeni === "zamitnuto") return `<span class="volba zamitnuto">připomínka · ${vKole} · zamítnuto</span>`;
     return k.oprava
       ? `<span class="volba zapracovano" title="Chyba ve výkresu, oprava byla v ceně a do kol připomínek se nepočítá">✓ oprava v ceně · ${vKole} · zapracováno</span>`
       : `<span class="volba zapracovano">✓ připomínka · ${vKole} · zapracováno</span>`;
@@ -1918,12 +2003,16 @@ function komentareHtml(cislo, nadpis) {
               : ""}
             ${k.pozadujeZmenu && k.volba !== "pripominka"
               ? k.vyrizeno
-                ? `<span class="pozadavek vyrizeno">${k.vyrizeni === "zamitnuto" ? "Požadavek zamítnut" : "Vyřízeno novou revizí"}</span>`
+                ? k.vyrizeni === "zamitnuto"
+                  ? `<span class="volba zamitnuto">Požadavek zamítnut</span>`
+                  : `<span class="pozadavek vyrizeno">Vyřízeno novou revizí</span>`
                 : `<span class="pozadavek">Požaduje změnu · čeká na novou revizi</span>`
               : ""}
             <span class="cas">${kdyKratce(k.vytvoreno)}</span>
           </div>
           <div class="text">${h(k.text)}</div>
+          ${k.vyrizeni === "zamitnuto" && k.duvod
+            ? `<div class="duvod-zamitnuti"><b>Důvod zamítnutí:</b> ${h(k.duvod)}</div>` : ""}
         </li>`).join("")}</ul>`
     : `<p class="prazdno">${cislo ? "K tomuto dílu zatím nikdo nic nenapsal." : "Zatím žádné komentáře k projektu."}</p>`;
   const chyba = chybaFormulare[cislo] ? `<p class="chyba">${h(chybaFormulare[cislo])}</p>` : "";
@@ -2181,6 +2270,12 @@ function stazeniHtml(p) {
       <span class="proc">Stažení je pozastavené kvůli požadované změně.</span>
     </div>`;
   }
+  if (stazeniPozastavene(p.cislo)) {
+    return `<div class="stazeni anim-fade">
+      <span class="zamceno">${IKONA_ZAMKU}Stažení pozastaveno</span>
+      <span class="proc">Čeká se na vyřízení připomínky k jinému dílu.</span>
+    </div>`;
+  }
   const v = vykresK(p.cislo);
   if (!v) return "";
   return `<div class="stazeni anim-fade">
@@ -2247,7 +2342,7 @@ async function stahniVse(tlacitko) {
   const kdo = await zjistiJmeno();
   if (!kdo) return;
   const vse = nahled?.vykresy ?? [];
-  const seznam = vse.filter((v) => !zamceno(v.cislo));
+  const seznam = vse.filter((v) => !stazeniPozastavene(v.cislo));
   if (!seznam.length) return oznam("Teď nejde stáhnout žádný výkres — všechny čekají na novou revizi.", true);
   const puvodni = tlacitko.innerHTML;
   tlacitko.disabled = true;
@@ -2452,13 +2547,15 @@ function otevriNavod() {
       <span class="znak"><span class="tecka pripominka"></span></span><span><b>Červená: připomínka.</b> Napsali jste, co upravit. Po odeslání kola
         ji opravím a díl vydám znovu s novým písmenem revize (třeba B místo A). Tím začne další kolo
         a u opraveného dílu bude zase prázdný kroužek: zkontrolujete ho znovu.</span>
+      <span class="znak"><span class="tecka zamitnuto"></span></span><span><b>Oranžová: připomínka zamítnuta.</b> Připomínku jsem nezapracoval
+        a u dílu najdete důvod. V dalším kole díl označíte jako v pořádku, nebo napíšete novou připomínku.</span>
       <span class="znak"><span class="tecka hotovo"></span></span><span><b>Šedá: hotový díl.</b> Odsouhlasili jste ho už dřív. Znovu ho procházet
         nemusíte. Kdybyste na něm přece jen potřebovali změnu, připomínku napsat můžete.</span>
     </div>
     <p style="margin:8px 0 0">Stejný význam mají štítky v přehledu dílů:</p>
     <div style="display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0"><span class="volba ceka">k projití</span>
       <span class="volba ok">✓ v pořádku</span> <span class="volba pripominka">připomínka</span>
-      <span class="volba oprava">oprava v ceně</span></div>
+      <span class="volba oprava">oprava v ceně</span> <span class="volba zamitnuto">zamítnuto</span></div>
     <p style="margin:8px 0 0"><b>Oprava v ceně</b>: když připomínka ukáže moji chybu ve výkresu (chybějící
       kóta, nejasné značení), opravím ji v ceně a do kol připomínek se nepočítá.</p>
 
